@@ -6,6 +6,9 @@ A complete fictional example: [`plugins/acq/templates/config.example.json`](../p
 
 > **Not financial, legal or lending advice.** The rate and lien sections are rough US SBA 7(a) assumptions so the napkin math has numbers in it. Check them with a lender.
 
+## `about` and `voice`
+`about` is a few sentences in your own words: who you are, what you're good at, what you want from a business. "Challenge me" reads it. `voice` is `"snarky"` (default) or `"plain"`.
+
 ## `money`
 | Field | Meaning |
 |---|---|

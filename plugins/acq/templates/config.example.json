@@ -3,6 +3,7 @@
   "profileName": "Example searcher (fictional)",
   "updatedAt": "2026-11-02T00:00:00Z",
   "voice": "snarky",
+  "about": "Fictional example: a former operations manager who wants a stable, local business with a team in place, and would rather not be the only person who knows how things work.",
 
   "money": {
     "cashDown": 300000,

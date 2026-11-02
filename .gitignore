@@ -22,3 +22,6 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Local preview config (machine-specific paths)
+.claude/launch.json

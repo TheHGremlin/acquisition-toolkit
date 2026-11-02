@@ -35,3 +35,15 @@ Checked against the Claude Code plugin and marketplace docs and the claude.com p
 | X03 | No top-level `bin/` in the plugin: claude.ai and Cowork refuse plugins that have one. Scripts live in `tools/`. | LOCKED |
 | X04 | ⚑ Not every account may have the Artifact tool or the `db`, `user` and `sample` capabilities. `/acq:setup` checks first and falls back to local HTML. | OPEN (verify) |
 | X05 | ⚑ Whether claude.ai chat can publish an artifact with a database from a plugin skill. v1 documents Claude Code as the supported path. | OPEN (verify) |
+
+## Scorecard build (2026-11-02)
+
+| ID | Decision | Status |
+|---|---|---|
+| B01 | Pages embed copies of the template JSON files (artifacts can't fetch files from the repository). `tools/dev/sync_templates.py` copies them in; `--check` fails when a page is stale. | LOCKED |
+| B02 | Until a user imports a config or runs Setup, the Scorecard runs on the fictional example profile and says so in a banner. | LOCKED |
+| B03 | Deal scores are keyed by criterion id (`predictability`, `team`…) instead of the original `c1`…`c12`. | LOCKED |
+| B04 | Built-in gates can be retiered (hard/soft) or switched off in the config; the declining-revenue gate's overrule can be disabled. | LOCKED |
+| B05 | Fixed a latent bug carried over from the original: `normalize()` dropped defaults (such as commute presence) from partially filled deals. Only affects deals written by something other than the page. | LOCKED |
+| B06 | Pages start with `<meta charset>` and a viewport tag so they render correctly as plain local files; the artifact wrapper ignores the duplicates. | LOCKED |
+| B07 | Local mode stores everything under one browser-storage key (`acq-scorecard-v1`), with Export config / Export everything / Import in Settings. | LOCKED |
