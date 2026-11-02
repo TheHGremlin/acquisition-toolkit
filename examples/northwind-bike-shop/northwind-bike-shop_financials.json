@@ -1,0 +1,450 @@
+{
+  "deal": {
+    "id": "northwind-bike-shop",
+    "name": "Northwind Bike Shop (fictional example)",
+    "preparedAt": "2026-11-02",
+    "preparedBy": "Claude (example)",
+    "note": "Entirely fictional numbers, made up to show what the workbook looks like."
+  },
+  "periods": [
+    {
+      "key": "y2023",
+      "label": "2023",
+      "kind": "year",
+      "days": 365
+    },
+    {
+      "key": "y2024",
+      "label": "2024",
+      "kind": "year",
+      "days": 365
+    },
+    {
+      "key": "y2025",
+      "label": "2025",
+      "kind": "year",
+      "days": 365
+    },
+    {
+      "key": "ytd2026",
+      "label": "2026 YTD (Jun)",
+      "kind": "partial",
+      "days": 181
+    }
+  ],
+  "pl": {
+    "rows": [
+      {
+        "key": "rev_sales",
+        "label": "Bike and parts sales",
+        "type": "revenue",
+        "values": {
+          "y2023": 610000,
+          "y2024": 655000,
+          "y2025": 690000,
+          "ytd2026": 372000
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.14",
+          "y2024": "Fictional CIM p.14",
+          "y2025": "Fictional CIM p.14",
+          "ytd2026": "Fictional CIM p.14"
+        }
+      },
+      {
+        "key": "rev_service",
+        "label": "Repair and service",
+        "type": "revenue",
+        "values": {
+          "y2023": 240000,
+          "y2024": 262000,
+          "y2025": 281000,
+          "ytd2026": 151000
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.14",
+          "y2024": "Fictional CIM p.14",
+          "y2025": "Fictional CIM p.14",
+          "ytd2026": "Fictional CIM p.14"
+        }
+      },
+      {
+        "key": "cogs",
+        "label": "Cost of goods",
+        "type": "cogs",
+        "values": {
+          "y2023": 372000,
+          "y2024": 399000,
+          "y2025": 418000,
+          "ytd2026": 226000
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.14",
+          "y2024": "Fictional CIM p.14",
+          "y2025": "Fictional CIM p.14",
+          "ytd2026": "Fictional CIM p.14"
+        }
+      },
+      {
+        "key": "wages",
+        "label": "Staff wages (excl. owner)",
+        "type": "expense",
+        "values": {
+          "y2023": 168000,
+          "y2024": 176000,
+          "y2025": 188000,
+          "ytd2026": 101000
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      },
+      {
+        "key": "owner_salary",
+        "label": "Owner salary",
+        "type": "expense",
+        "values": {
+          "y2023": 60000,
+          "y2024": 60000,
+          "y2025": 60000,
+          "ytd2026": 30000
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      },
+      {
+        "key": "payroll_tax",
+        "label": "Payroll taxes",
+        "type": "expense",
+        "values": {
+          "y2023": 18000,
+          "y2024": 18800,
+          "y2025": 19900,
+          "ytd2026": 10400
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      },
+      {
+        "key": "rent",
+        "label": "Rent",
+        "type": "expense",
+        "values": {
+          "y2023": 54000,
+          "y2024": 55600,
+          "y2025": 57300,
+          "ytd2026": 28900
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      },
+      {
+        "key": "advertising",
+        "label": "Advertising",
+        "type": "expense",
+        "values": {
+          "y2023": 12000,
+          "y2024": 14500,
+          "y2025": 9000,
+          "ytd2026": 4100
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      },
+      {
+        "key": "insurance",
+        "label": "Insurance",
+        "type": "expense",
+        "values": {
+          "y2023": 9000,
+          "y2024": 9400,
+          "y2025": 9900,
+          "ytd2026": 5100
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      },
+      {
+        "key": "card_fees",
+        "label": "Card fees",
+        "type": "expense",
+        "values": {
+          "y2023": 21000,
+          "y2024": 22500,
+          "y2025": 23800,
+          "ytd2026": 13000
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      },
+      {
+        "key": "office",
+        "label": "Office and admin",
+        "type": "expense",
+        "values": {
+          "y2023": 16000,
+          "y2024": 16500,
+          "y2025": 17200,
+          "ytd2026": 8800
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      },
+      {
+        "key": "depreciation",
+        "label": "Depreciation",
+        "type": "expense",
+        "values": {
+          "y2023": 8000,
+          "y2024": 8000,
+          "y2025": 9000,
+          "ytd2026": 4500
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      }
+    ],
+    "statedNet": {
+      "y2023": 112000,
+      "y2024": 136700,
+      "y2025": 158900,
+      "ytd2026": 91200
+    },
+    "statedNetSource": {
+      "y2023": "Fictional CIM p.15",
+      "y2024": "Fictional CIM p.15",
+      "y2025": "Fictional CIM p.15",
+      "ytd2026": "Fictional CIM p.15"
+    }
+  },
+  "tax": {
+    "rows": [
+      {
+        "key": "revenue",
+        "label": "Gross receipts (line 1c)",
+        "values": {
+          "y2023": 848000,
+          "y2024": 915000,
+          "y2025": 969000,
+          "ytd2026": null
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.22",
+          "y2024": "Fictional CIM p.22",
+          "y2025": "Fictional CIM p.22",
+          "ytd2026": "Fictional CIM p.22"
+        }
+      },
+      {
+        "key": "income",
+        "label": "Ordinary business income (line 22)",
+        "values": {
+          "y2023": 108000,
+          "y2024": 134200,
+          "y2025": 152900,
+          "ytd2026": null
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.22",
+          "y2024": "Fictional CIM p.22",
+          "y2025": "Fictional CIM p.22",
+          "ytd2026": "Fictional CIM p.22"
+        }
+      }
+    ]
+  },
+  "sde": {
+    "rows": [
+      {
+        "label": "Net income (P&L)",
+        "values": {
+          "y2023": 112000,
+          "y2024": 136700,
+          "y2025": 158900,
+          "ytd2026": 91200
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.15",
+          "y2024": "Fictional CIM p.15",
+          "y2025": "Fictional CIM p.15",
+          "ytd2026": "Fictional CIM p.15"
+        }
+      },
+      {
+        "label": "+ Owner salary",
+        "values": {
+          "y2023": 60000,
+          "y2024": 60000,
+          "y2025": 60000,
+          "ytd2026": 30000
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.16",
+          "y2024": "Fictional CIM p.16",
+          "y2025": "Fictional CIM p.16",
+          "ytd2026": "Fictional CIM p.16"
+        }
+      },
+      {
+        "label": "+ Depreciation",
+        "values": {
+          "y2023": 8000,
+          "y2024": 8000,
+          "y2025": 9000,
+          "ytd2026": 4500
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.16",
+          "y2024": "Fictional CIM p.16",
+          "y2025": "Fictional CIM p.16",
+          "ytd2026": "Fictional CIM p.16"
+        }
+      },
+      {
+        "label": "+ Owner's health insurance",
+        "values": {
+          "y2023": 7200,
+          "y2024": 7400,
+          "y2025": 7600,
+          "ytd2026": 3900
+        },
+        "sources": {
+          "y2023": "Fictional CIM p.16",
+          "y2024": "Fictional CIM p.16",
+          "y2025": "Fictional CIM p.16",
+          "ytd2026": "Fictional CIM p.16"
+        }
+      }
+    ],
+    "stated": {
+      "label": "SDE as stated by the broker",
+      "values": {
+        "y2023": null,
+        "y2024": null,
+        "y2025": 235500,
+        "ytd2026": null
+      },
+      "sources": {
+        "y2025": "Fictional CIM p.3"
+      }
+    }
+  },
+  "mix": {
+    "label": "Revenue mix, 2025",
+    "rows": [
+      {
+        "label": "New bikes",
+        "value": 420000
+      },
+      {
+        "label": "Parts and accessories",
+        "value": 270000
+      },
+      {
+        "label": "Repair and service",
+        "value": 281000
+      }
+    ],
+    "source": "Fictional CIM p.9"
+  },
+  "dealMath": {
+    "label": "Loan test at a $620K asking price",
+    "assumptions": "Example profile: $300K down, total project = price x 1.10, prime 7% + 3 (SBA cap for loans over $350K), 10 years, $120K operator salary. Napkin.",
+    "rows": [
+      {
+        "label": "2025 SDE",
+        "sde": 235500,
+        "dscr": 1.86,
+        "takeHome": 173331,
+        "score": 3
+      }
+    ],
+    "gate": 1.25
+  },
+  "charts": [
+    {
+      "kind": "timeline",
+      "title": "Revenue, costs, profit and SDE",
+      "note": "Revenue, profit and SDE all rise steadily across the three years."
+    },
+    {
+      "kind": "rows_vs_revenue",
+      "title": "Wages vs revenue",
+      "rows": [
+        "wages"
+      ],
+      "note": "Staff wages hold at roughly 19-20% of revenue."
+    },
+    {
+      "kind": "mix",
+      "title": "Revenue mix",
+      "note": "Service is about 29% of revenue: the steadier part."
+    },
+    {
+      "kind": "dscr",
+      "title": "Loan test",
+      "note": "Clears the 1.25 floor at asking with room to spare."
+    }
+  ],
+  "findings": [
+    {
+      "kind": "boon",
+      "severity": "medium",
+      "title": "Service revenue grows every year",
+      "detail": "Repair and service up from $240K to $281K (2023-2025).",
+      "source": "Fictional CIM p.14",
+      "ask": "Is service booked by appointment, and how far out?"
+    },
+    {
+      "kind": "watch",
+      "severity": "medium",
+      "title": "Advertising cut in 2025",
+      "detail": "Advertising fell from $14.5K to $9K while revenue still grew.",
+      "source": "Fictional CIM p.15",
+      "ask": "Was the cut deliberate, and did it hurt the second half?"
+    },
+    {
+      "kind": "flag",
+      "severity": "low",
+      "title": "Tax returns show lower income",
+      "detail": "Ordinary income runs a few thousand below P&L net each year.",
+      "source": "Fictional CIM p.22",
+      "ask": "What explains the gap between the books and the returns?"
+    }
+  ]
+}
