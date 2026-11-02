@@ -85,7 +85,7 @@ tools/dev/      maintainer scripts
 ## Changing the toolkit
 - The pages are single HTML files with no build step. Each embeds a copy of the template JSON files; after editing anything in `plugins/acq/templates/`, run `python tools/dev/sync_templates.py` (add `--check` to only verify).
 - Validate the plugin with `claude plugin validate ./plugins/acq`. To try it without installing, start Claude Code with `claude --plugin-dir ./plugins/acq`.
-- Decisions and their reasons are in [DECISIONS.md](DECISIONS.md); status and test records in [PROGRESS.md](PROGRESS.md).
+- Decisions and their reasons are in [DECISIONS.md](DECISIONS.md).
 - Example data must be obviously fictional.
 
 ## Known limits
