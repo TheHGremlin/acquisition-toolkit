@@ -47,3 +47,8 @@ Checked against the Claude Code plugin and marketplace docs and the claude.com p
 | B05 | Fixed a latent bug carried over from the original: `normalize()` dropped defaults (such as commute presence) from partially filled deals. Only affects deals written by something other than the page. | LOCKED |
 | B06 | Pages start with `<meta charset>` and a viewport tag so they render correctly as plain local files; the artifact wrapper ignores the duplicates. | LOCKED |
 | B07 | Local mode stores everything under one browser-storage key (`acq-scorecard-v1`), with Export config / Export everything / Import in Settings. | LOCKED |
+| B08 | The Setup wizard edits a draft kept in browser storage (`acq-setup-draft`), so it can be paused; only "Save" writes the profile. | LOCKED |
+| B09 | The wizard's quiz reuses the original quiz's method and math unchanged: round A bests, round B worsts with a dealbreaker option, ratio scale 5/2/1/0.5/0.2, row geometric means, round B inverted. Weights are rounded to integers summing to 100 by largest remainder. | LOCKED |
+| B10 | Quiz cards show the criterion's own 5 and 1 anchors, so a criterion needs both before the quiz starts. | LOCKED |
+| B11 | A criterion marked a dealbreaker in at least a third of its round-B pairs (minimum 2) is flagged as a gate candidate, with the advice to re-anchor or gate it and retake round B. | LOCKED |
+| B12 | "Start from scratch" blanks the money fields so example numbers can't slip through; the Finish step blocks saving until weights sum to 100, judgment criteria have 1/3/5 anchors, money is set, the region gate has a region, and prime was checked in the last 60 days. | LOCKED |

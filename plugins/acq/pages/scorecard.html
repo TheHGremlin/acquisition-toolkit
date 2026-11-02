@@ -164,6 +164,19 @@ tr.hl td{background:var(--accent-soft)}
 .try label{width:180px}
 #nav-cheat.on,#nav-settings.on{color:var(--accent-ink)}
 #nav-setup.on{color:var(--accent-ink)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px}
+.steps button{font-size:13px;padding:5px 10px}
+.steps button.on{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-soft)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:560px){.pair{grid-template-columns:1fr}}
+.opt{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.choices{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.choices.deal{grid-template-columns:repeat(3,1fr)}
+.choices.deal button{color:var(--bad);font-size:13px}
+@media (max-width:560px){.choices{grid-template-columns:1fr 1fr}.choices.deal{grid-template-columns:1fr}}
+.progress{height:6px;background:var(--bg);border-radius:4px;overflow:hidden}
+.progress>div{height:100%;background:var(--accent)}
+details.crit>summary{font-weight:600}
 .io{display:flex;flex-direction:column;gap:8px}
 .io textarea{font-family:var(--f-mono);font-size:12px;min-height:160px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
@@ -179,6 +192,7 @@ tr.hl td{background:var(--accent-soft)}
       <button id="nav-pipe" class="ghost" type="button">Pipeline</button>
       <button id="nav-cheat" class="ghost" type="button">Cheat sheet</button>
       <button id="nav-settings" class="ghost" type="button">Settings</button>
+      <button id="nav-setup" class="ghost" type="button">Setup</button>
       <button id="new-deal" class="primary" type="button">+ New deal</button>
     </div>
   </header>
@@ -595,14 +609,16 @@ function render(){
   $("#nav-pipe").classList.toggle("on",view.name==="pipe");
   $("#nav-cheat").classList.toggle("on",view.name==="cheat");
   $("#nav-settings").classList.toggle("on",view.name==="settings");
+  $("#nav-setup").classList.toggle("on",view.name==="setup");
   if(view.name==="settings")v.append(renderSettings());
+  else if(view.name==="setup")v.append(renderSetup());
   else if(view.name==="cheat")v.append(renderCheat());
   else if(view.name==="deal"&&cur)v.append(renderEditor());
   else v.append(renderPipeline());
 }
 function noticeCards(){
   const out=[];
-  if(!P.configured)out.push(el("div",{class:"banner warn"},"You're looking at the fictional example searcher's settings. Import your own config in Settings (or run Setup) before scoring real deals."));
+  if(!P.configured)out.push(el("div",{class:"banner warn"},"You're looking at the fictional example searcher's settings. Run Setup (or import your config in Settings) before scoring real deals. ",el("button",{type:"button",class:"small",onclick:()=>go("setup"),text:"Run Setup"})));
   const age=primeAgeDays();
   if(age==null||age>PRIME_STALE_DAYS)out.push(el("div",{class:"banner warn"},"The prime rate in your settings was last checked "+(age==null?"never":age+" days ago")+". Rates move; update it in Settings (FRED series DPRIME) before trusting the deal math."));
   return out;
@@ -1312,6 +1328,418 @@ function renderCheat(){
   return box;
 }
 
+/* ---------- setup wizard ---------- */
+// Walks a new searcher through money, gates, criteria, the two-round swing-weighting quiz, and geography & Joy.
+// Works on a draft copy of the profile, kept in this browser so it can be paused; nothing changes the live Scorecard until "Save".
+const SETUP_KEY="acq-setup-draft";
+const WIZ_STEPS=["Start","Money","Gates","Criteria","Weights","Geography & Joy","Finish"];
+let wiz=null;
+function wizLoad(){
+  try{const s=localStorage.getItem(SETUP_KEY);if(s){const o=JSON.parse(s);if(o&&o.profile&&Array.isArray(o.profile.criteria))return o;}}catch(e){}
+  return {step:0,profile:editableProfile(),quiz:null};
+}
+function wizSave(){try{localStorage.setItem(SETUP_KEY,JSON.stringify(wiz));}catch(e){}}
+function wizGo(n){wiz.step=clamp(n,0,WIZ_STEPS.length-1);wizSave();render();window.scrollTo({top:0});}
+function wizRefresh(){wizSave();render();}
+function scratchProfile(){
+  const p=clone(EXAMPLE);
+  p.profileName="";p.about="";p.configured=false;
+  p.gates.manual=[];
+  for(const k of ["cashDown","projectCap","operatorSalary","sdeFloor"])p.money[k]=null;
+  p.criteria=(LIB.criteria||[]).filter(c=>c.starter).map(c=>({id:c.id,weight:{up:0,down:0}}));
+  p.geo.regionLimit="";p.geo.homeBase="";
+  p.joy.anchors={1:"",2:"",3:"",4:"",5:""};
+  return p;
+}
+// Library text merged with the draft's overrides, so the wizard can show and edit it.
+function wizCrit(e){const base=LIBC[e.id]||{};return Object.assign({kind:CALC_IDS.includes(e.id)?"calc":"judgment"},base,e,{anchors:Object.assign({},base.anchors||{},e.anchors||{})});}
+const slug=s=>String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,30)||"item";
+const uniqId=(prefix,base,taken)=>{let id=prefix+slug(base),k=2;while(taken.includes(id))id=prefix+slug(base)+"-"+(k++);return id;};
+
+/* the two-round quiz (same method and math as the original priorities quiz) */
+// Round A: both criteria at their best (anchor 5): which would you rather have? Round B: both at their worst still acceptable
+// (anchor 1): which would you rather live with, with a dealbreaker option. Each round becomes a pairwise ratio matrix; weights
+// are its row geometric means (AHP-style). Round B is inverted: preferring to live with A's worst means B's downside matters more.
+const QUIZ_RATIO={"-2":5,"-1":2,"0":1,"1":0.5,"2":0.2};
+function quizNew(ids){
+  const n=ids.length,mk=()=>{let p=[];for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)p.push(Math.random()<.5?[i,j]:[j,i]);
+    for(let k=p.length-1;k>0;k--){const r=Math.floor(Math.random()*(k+1));[p[k],p[r]]=[p[r],p[k]];}
+    // avoid showing the same criterion in two pairs in a row where possible
+    for(let k=1;k<p.length;k++){const a=p[k-1],q=p[k];if(a.includes(q[0])||a.includes(q[1])){for(let m=k+1;m<p.length;m++){const s=p[m];if(!a.includes(s[0])&&!a.includes(s[1])){[p[k],p[m]]=[p[m],p[k]];break;}}}}
+    return p;};
+  return {ids:ids.slice(),P:[mk(),mk()],A:[[],[]],DB:[[],[]],rd:0,idx:0,result:null};
+}
+function quizWeights(q,r,inv){
+  const n=q.ids.length;
+  const M=Array.from({length:n},()=>Array(n).fill(1)),D=Array.from({length:n},()=>Array(n).fill(0));
+  q.P[r].forEach(([a,b],k)=>{let x=QUIZ_RATIO[q.A[r][k]];if(inv)x=1/x;M[a][b]=x;M[b][a]=1/x;const d=x>1?1:x<1?-1:0;D[a][b]=d;D[b][a]=-d;});
+  const g=M.map(row=>Math.pow(row.reduce((p,v)=>p*v,1),1/n)),s=g.reduce((p,v)=>p+v,0);
+  let loops=0;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)for(let k=j+1;k<n;k++){const a=D[i][j],b=D[j][k],c=D[k][i];if(a&&a===b&&b===c)loops++;}
+  return {w:g.map(x=>x/s*100),loops};
+}
+// Integer weights that sum to exactly 100 (largest remainder).
+function round100(ws){
+  const fl=ws.map(Math.floor);let left=100-fl.reduce((a,b)=>a+b,0);
+  ws.map((w,i)=>[w-fl[i],i]).sort((a,b)=>b[0]-a[0]).forEach(([,i])=>{if(left>0){fl[i]++;left--;}});
+  return fl;
+}
+function quizFinish(q){
+  const a=quizWeights(q,0,false),b=quizWeights(q,1,true);
+  const g=a.w.map((x,i)=>Math.sqrt(x*b.w[i])),s=g.reduce((p,v)=>p+v,0);
+  const up=round100(a.w),down=round100(b.w),db={};
+  q.ids.forEach(id=>{db[id]=0;});
+  q.P[1].forEach(([x,y],k)=>{const d=q.DB[1][k];if(d==="L"||d==="B")db[q.ids[x]]++;if(d==="R"||d==="B")db[q.ids[y]]++;});
+  const r1=x=>Math.round(x*10)/10;
+  q.result={at:new Date().toISOString(),
+    rows:q.ids.map((id,i)=>({id,upPct:r1(a.w[i]),downPct:r1(b.w[i]),combinedPct:r1(g[i]/s*100),up:up[i],down:down[i],dealbreakers:db[id]})),
+    loops:{A:a.loops,B:b.loops},
+    tossups:{A:q.A[0].filter(x=>x===0).length,B:q.A[1].filter((x,k)=>x===0&&!q.DB[1][k]).length}};
+  return q.result;
+}
+function quizApply(p,q){
+  const byId={};for(const r of q.result.rows)byId[r.id]=r;
+  for(const c of p.criteria){const r=byId[c.id];if(r)c.weight={up:r.up,down:r.down};}
+  p.quiz={takenAt:q.result.at,loops:q.result.loops,tossups:q.result.tossups,dealbreakers:Object.fromEntries(q.result.rows.map(r=>[r.id,r.dealbreakers]))};
+}
+const QUIPS_A=["Ten down. Dream big, but within budget.","A toss-up is a valid answer, but don't make it a habit.","Halfway through the nice part. Round B is the nightmares.","Almost done with the good timeline."];
+const QUIPS_B=["Welcome to the bad timeline. Pick your poison.","'Dealbreaker' means walk away, not 'ugh, annoying'.","Halfway through the horrors.","Nearly there."];
+function quizPick(v,d){
+  const q=wiz.quiz;q.A[q.rd][q.idx]=v;q.DB[q.rd][q.idx]=d||null;q.idx++;
+  const N=q.P[0].length;
+  q.quip="";
+  if(q.idx>=N){if(q.rd===0){q.rd=1;q.idx=0;q.quip=V("Round B. Same topics, worst versions. Which would you rather live with?","Round B: the same topics at their worst. Which would you rather live with?");}else{quizFinish(q);quizApply(wiz.profile,q);}}
+  else if(q.idx%10===0)q.quip=V((q.rd?QUIPS_B:QUIPS_A)[(q.idx/10-1)%4],"");
+  wizRefresh();
+}
+function quizBack(){
+  const q=wiz.quiz;if(q.idx>0)q.idx--;else if(q.rd===1){q.rd=0;q.idx=q.P[0].length-1;}else return;
+  q.A[q.rd].length=q.idx;q.DB[q.rd].length=q.idx;q.quip=V("Second thoughts are allowed.","");wizRefresh();
+}
+document.addEventListener("keydown",e=>{
+  if(view.name!=="setup"||!wiz||wiz.step!==4||!wiz.quiz||wiz.quiz.result)return;
+  if(["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName))return;
+  const k=+e.key;if(k>=1&&k<=5){e.preventDefault();quizPick(k-3);}
+});
+
+/* wizard views */
+function renderSetup(){
+  if(!wiz)wiz=wizLoad();
+  const box=el("div",{style:"display:flex;flex-direction:column;gap:14px;max-width:900px"});
+  const nav=el("ol",{class:"steps"});
+  WIZ_STEPS.forEach((s,i)=>nav.append(el("li",{},el("button",{type:"button",class:"ghost"+(i===wiz.step?" on":""),"aria-current":i===wiz.step?"step":null,onclick:()=>wizGo(i)},(i+1)+". "+s))));
+  box.append(nav);
+  const body=[setupStart,setupMoney,setupGates,setupCriteria,setupWeights,setupGeoJoy,setupFinish][wiz.step]();
+  box.append(body);
+  const foot=el("div",{class:"row-actions",style:"justify-content:space-between"});
+  foot.append(wiz.step>0?el("button",{type:"button",onclick:()=>wizGo(wiz.step-1),text:"← "+WIZ_STEPS[wiz.step-1]}):el("span"));
+  if(wiz.step<WIZ_STEPS.length-1)foot.append(el("button",{type:"button",class:"primary",onclick:()=>wizGo(wiz.step+1),text:WIZ_STEPS[wiz.step+1]+" →"}));
+  box.append(foot);
+  box.append(el("div",{class:"small muted",text:"Your progress is saved in this browser as you go. Nothing changes your Scorecard until you press Save on the last step."}));
+  return box;
+}
+const wsec=(title,hint)=>el("div",{class:"sec"},el("div",{class:"sec-head"},el("h2",{text:title}),hint?el("span",{class:"hint",text:hint}):null));
+// A text/number field bound to a path in the draft profile; saves on input, no re-render (keeps focus).
+function wfield(label,get,set,opts){return field(label,get(),v=>{set(v);wizSave();if(opts&&opts.after)opts.after();},opts||{});}
+function wmoney(label,obj,key,ph,after){return wfield(label,()=>moneyIn(obj[key]),v=>{const n=parseMoney(v);if(n!=null&&n>=0)obj[key]=n;},{ph,mode:"decimal",after});}
+function wnum(label,obj,key,ph,after){return wfield(label,()=>obj[key]==null?"":String(obj[key]),v=>{const n=parseN(v);if(n!=null)obj[key]=n;},{ph,mode:"decimal",after});}
+
+function setupStart(){
+  const p=wiz.profile;
+  const s=wsec("Set up your Scorecard","About 30–45 minutes, most of it the quiz. You can stop and come back.");
+  s.append(el("ul",{class:"qlist"},
+    el("li",{text:"Money: what you can put in, the biggest project you'll take on, and the salary you need."}),
+    el("li",{text:"Gates: the things that end the conversation. A gate is a walk-away; everything else is a trade-off."}),
+    el("li",{text:"Criteria: what you'll score each listing on, and what a 1, 3 and 5 look like in your words. 1 = the worst you'd still accept."}),
+    el("li",{text:"Weights: a two-round this-or-that quiz. Round A pits the best versions against each other, round B the worst."}),
+    el("li",{text:"Geography and Joy: how far you'll drive, and what makes a business interesting to you."})));
+  s.append(el("div",{class:"small muted",text:"This is a screening tool, not financial, legal or lending advice. The loan math uses rough US SBA 7(a) assumptions you should check with a lender."}));
+  const starts=el("div",{class:"row-actions"});
+  let armed=null;
+  const startBtn=(label,make)=>{const b=el("button",{type:"button",text:label});b.addEventListener("click",()=>{
+    if(armed!==b){armed=b;b.textContent=label+": replace the draft? Click again";setTimeout(()=>{if(armed===b){armed=null;b.textContent=label;}},4000);return;}
+    wiz={step:0,profile:make(),quiz:null};wizRefresh();});return b;};
+  if(rawProfile)starts.append(startBtn("Start over from your saved settings",()=>clone(rawProfile)));
+  starts.append(startBtn("Start from the fictional example",()=>Object.assign(clone(EXAMPLE),{configured:false})),startBtn("Start from scratch",scratchProfile));
+  s.append(el("div",{class:"small",style:"font-weight:600",text:"Starting point (your current draft is kept unless you pick one):"}),starts);
+  const me=wsec("About you","\"Challenge me\" reads this. A few sentences.");
+  me.append(wfield("Who you are, what you're good at, what you want from a business",()=>p.about||"",v=>{p.about=v;},{area:true,ph:"e.g. Ten years running operations teams. Want a stable local business with a team in place. Happy to fix process, not to learn a trade."}));
+  me.append(el("div",{class:"small muted",text:"Voice of the callouts and reviews"}),segRow([["snarky","Snarky"],["plain","Plain"]],p.voice==="plain"?"plain":"snarky",v=>{p.voice=v||"snarky";wizSave();},"text"));
+  return el("div",{style:"display:flex;flex-direction:column;gap:14px"},s,me);
+}
+
+function setupMoney(){
+  const p=wiz.profile,M=p.money,R=p.rates;
+  const out=el("div",{class:"kpis",id:"wiz-money-kpis"});
+  const paint=()=>{
+    out.textContent="";
+    if(!(M.projectCap>0&&M.projectFactor>0&&M.cashDown>=0&&M.cashDown!=null)){out.append(el("div",{class:"small muted",text:"Fill in your cash, project cap and factor to see what you can afford."}));return;}
+    const T=(R.sbaTiers||[]).map(t=>[t.upTo==null?Infinity:t.upTo,t.spread]);
+    const rate=L=>{for(const [hi,sp] of T)if(L<=hi)return (R.prime+sp)/100;return R.prime/100;};
+    const loan=Math.max(0,M.projectCap-M.cashDown),ds=pmt(loan,rate(loan),M.loanTermYears);
+    const k=(v,l)=>el("div",{class:"kpi"},el("span",{class:"v",text:v}),el("span",{class:"l",text:l}));
+    out.append(k(money(M.projectCap/M.projectFactor),"Max asking price"),k(money(loan),"Biggest loan"),k(money(ds)+"/yr","Payments on it"),
+      k(money(M.operatorSalary+p.bands.dscrGate*ds),"SDE needed to use the full cap"));
+  };
+  const s=wsec("Your money","Napkin math. Every deal recalculates when these change.");
+  s.append(el("div",{class:"grid2"},
+    wmoney("Cash you'll put in",M,"cashDown","e.g. 300k",paint),
+    wmoney("Biggest total project",M,"projectCap","e.g. 2m",paint),
+    wmoney("Salary you need from it",M,"operatorSalary","e.g. 120k",paint),
+    wmoney("Minimum SDE (soft gate)",M,"sdeFloor","e.g. 150k",paint),
+    wnum("Total project ÷ asking price",M,"projectFactor","e.g. 1.10",paint)));
+  s.append(el("ul",{class:"qlist small"},
+    el("li",{text:"Cash you'll put in: after setting aside a household reserve (several months of expenses). Lenders count only liquid money, not retirement accounts ⚑ verify."}),
+    el("li",{text:"Total project: asking price plus closing costs, fees and working capital. The factor turns one into the other; 1.10 means 10% on top."}),
+    el("li",{text:"Salary: what the business must pay whoever runs it, you now or a manager later. The loan test is measured after this."}),
+    el("li",{text:"SDE (seller's discretionary earnings): profit before the owner's pay and perks. The usual earnings figure in small-business listings."})));
+  s.append(out);paint();
+  const b=wsec("Deal-math bands","Score = the lower of the two. Suggested from your salary; edit if you like.");
+  const bt=el("div");
+  const paintBands=()=>{bt.textContent="";
+    const rows=[5,4,3,2].map(sc=>{const tb=p.bands.takeHome.find(x=>x[1]===sc),db=p.bands.dscr.find(x=>x[1]===sc);
+      return el("tr",{},el("td",{class:"n",text:String(sc)}),
+        el("td",{},wfield("",()=>moneyIn(tb[0]),v=>{const n=parseMoney(v);if(n!=null)tb[0]=n;},{mode:"decimal"})),
+        el("td",{},wfield("",()=>String(db[0]),v=>{const n=parseN(v);if(n!=null)db[0]=n;},{mode:"decimal"})));});
+    bt.append(el("div",{class:"tablewrap"},el("table",{},el("thead",{},el("tr",{},el("th",{class:"n",text:"Score"}),el("th",{text:"Take-home at least"}),el("th",{text:"Coverage (DSCR) at least"}))),el("tbody",{},...rows))));};
+  paintBands();
+  const sug=el("button",{type:"button",text:"Suggest take-home bands from my salary"});
+  sug.addEventListener("click",()=>{const s0=M.operatorSalary;p.bands.takeHome=[[s0*2,5],[s0*1.6,4],[s0*1.3,3],[s0*1.1,2]].map(([v,k])=>[Math.round(v/5000)*5000,k]);wizSave();paintBands();});
+  b.append(bt,el("div",{class:"row-actions"},sug),
+    wnum("Coverage floor for the soft gate (DSCR)",p.bands,"dscrGate","1.25"),
+    el("div",{class:"small muted",text:"DSCR = (SDE − your salary) ÷ yearly loan payments. 1.25 is a common lender minimum ⚑ verify."}));
+  const r=wsec("Rates ⚑","Rough US SBA 7(a) assumptions, not advice.");
+  r.append(el("div",{class:"grid2"},
+    wnum("Prime rate %",R,"prime","e.g. 7",()=>{R.primeCheckedOn=today();paint();}),
+    wfield("Prime checked on",()=>R.primeCheckedOn||"",v=>{if(/^\d{4}-\d{2}-\d{2}$/.test(v))R.primeCheckedOn=v;},{type:"date"})));
+  r.append(el("div",{class:"small muted",text:"Look up the current prime rate (FRED series DPRIME) and the SBA's maximum spreads for variable-rate 7(a) loans before trusting any of this. Tiers in this draft: "+(R.sbaTiers||[]).map(t=>"+"+t.spread+(t.upTo==null?" above":" up to "+money(t.upTo))).join(", ")+" (checked "+(R.sbaTiersCheckedOn||"?")+")."}));
+  return el("div",{style:"display:flex;flex-direction:column;gap:14px"},s,b,r);
+}
+
+function setupGates(){
+  const p=wiz.profile,G=p.gates;G.builtin=G.builtin||{};G.manual=G.manual||[];
+  const intro=wsec("Gates","A gate ends the conversation; a criterion is a trade-off. If you'd walk away from a deal over it, no matter what else is good, it's a gate.");
+  intro.append(el("ul",{class:"qlist small"},
+    el("li",{text:"Hard: the deal is out."}),
+    el("li",{text:"Soft: the deal stays visible but takes a penalty, and you have to write down why you're still looking."}),
+    el("li",{text:"Digest only: the daily listing digest skips these, but there's no checkbox in the Scorecard."})));
+  const bi=wsec("Calculated gates","These fire on their own from the deal's numbers.");
+  for(const g of GATE_LIB.builtin||[]){
+    const cfg=G.builtin[g.id]=G.builtin[g.id]||{tier:g.tier,enabled:true};
+    const sel=el("select",{style:"width:auto"},...[["hard","Hard"],["soft","Soft"],["off","Off"]].map(([v,t])=>el("option",{value:v,text:t})));
+    sel.value=cfg.enabled===false?"off":(cfg.tier||g.tier);
+    sel.addEventListener("change",()=>{if(sel.value==="off")cfg.enabled=false;else{cfg.enabled=true;cfg.tier=sel.value;}wizSave();});
+    const row=el("div",{class:"crit"},el("div",{class:"crit-head"},el("span",{class:"crit-name",text:g.label}),sel),el("div",{class:"small muted",text:g.explain||""}));
+    if(g.overrulable){const cb=el("input",{type:"checkbox",checked:cfg.overrulable!==false});cb.addEventListener("change",()=>{cfg.overrulable=cb.checked;wizSave();});
+      row.append(el("label",{class:"check small"},cb,"Let me overrule it on a specific deal later (it then becomes a soft gate)"));}
+    bi.append(row);
+  }
+  const mine=wsec("Your gates","Ticked per deal in the Scorecard. Edit the wording so it's unambiguous to you and to the digest.");
+  if(!G.manual.length)mine.append(el("div",{class:"small muted",text:"None yet. Add from the menu below or write your own."}));
+  G.manual.forEach((g,i)=>{
+    const tier=el("select",{style:"width:auto"},...[["hard","Hard"],["soft","Soft"],["digest-only","Digest only"]].map(([v,t])=>el("option",{value:v,text:t})));
+    tier.value=g.tier||"hard";tier.addEventListener("change",()=>{g.tier=tier.value;wizRefresh();});
+    const rm=el("button",{type:"button",class:"ghost danger",text:"Remove"});rm.addEventListener("click",()=>{G.manual.splice(i,1);wizRefresh();});
+    const tpl=(GATE_LIB.templates||[]).find(t=>t.id===g.id)||{};
+    const row=el("div",{class:"crit"},el("div",{class:"crit-head"},el("span",{class:"crit-name",text:g.label||"(unnamed gate)"}),el("span",{class:"row-actions"},tier,rm)));
+    row.append(el("div",{class:"grid2"},wfield("Label",()=>g.label||"",v=>{g.label=v;}),
+      (tpl.needsText||g.text!=null)?wfield(tpl.needsText==="list"?"Which ones":"Which region",()=>g.text||"",v=>{g.text=v;}):null));
+    row.append(wfield("What trips it, and what passes",()=>g.explain||"",v=>{g.explain=v;}));
+    if(g.tier==="soft")row.append(wfield("The broker question that would clear it",()=>g.brokerQ||"",v=>{g.brokerQ=v;}));
+    row.append(wfield("How the listing digest should recognize it (optional)",()=>g.digestRule||"",v=>{g.digestRule=v;}));
+    mine.append(row);
+  });
+  const menu=wsec("Gate menu","Add any that fit, then edit them above.");
+  const have=new Set(G.manual.map(g=>g.id));
+  const tags=el("div",{class:"tags"});
+  for(const t of GATE_LIB.templates||[]){if(have.has(t.id))continue;
+    const b=el("button",{type:"button",class:"tag",title:t.explain||"",text:"+ "+t.label+" ("+(t.tier==="digest-only"?"digest only":t.tier)+")"});
+    b.addEventListener("click",()=>{const g={id:t.id,label:t.label,tier:t.tier,explain:t.explain||""};if(t.brokerQ)g.brokerQ=t.brokerQ;if(t.digestRule)g.digestRule=t.digestRule;if(t.needsText)g.text=t.id==="region"?(p.geo.regionLimit||""):"";G.manual.push(g);wizRefresh();});
+    tags.append(b);}
+  const own=el("input",{type:"text",placeholder:"Write your own gate, e.g. \"Needs a liquor license\""});
+  const addOwn=el("button",{type:"button",text:"Add"});
+  addOwn.addEventListener("click",()=>{const l=own.value.trim();if(!l)return;G.manual.push({id:uniqId("custom-",l,G.manual.map(g=>g.id)),label:l,tier:"hard",explain:""});wizRefresh();});
+  menu.append(tags,el("div",{class:"perkline"},own,addOwn));
+  return el("div",{style:"display:flex;flex-direction:column;gap:14px"},intro,bi,mine,menu);
+}
+
+function setupCriteria(){
+  const p=wiz.profile;
+  const n=p.criteria.length,pairs=n*(n-1)/2;
+  const intro=wsec("Criteria","What you'll score every listing on.");
+  intro.append(el("div",{class:"small",text:"Each criterion should pass four tests: you can judge it from a listing; it varies from deal to deal; it isn't already a gate; you actually care about it."}),
+    el("div",{class:"small",text:"Anchors: 1 = the worst you'd still accept (anything worse belongs in a gate), 5 = the best you could realistically find, 3 = solidly OK. Write them in your own words."}),
+    el("div",{class:n>12?"banner warn":"small muted",style:n>12?"margin:0":"",text:n+" criteria → "+pairs+" pairs per quiz round, "+pairs*2+" in all."+(n>12?" That's a long quiz; consider trimming.":"")}));
+  if(wiz.quiz&&!wiz.quiz.ids.every(id=>p.criteria.some(c=>c.id===id))||wiz.quiz&&wiz.quiz.ids.length!==n)
+    intro.append(el("div",{class:"banner warn",style:"margin:0",text:"Your criteria changed since you started the quiz, so it will start over."}));
+  const list=wsec("Your criteria");
+  p.criteria.forEach((e,i)=>{
+    const c=wizCrit(e);
+    const rm=el("button",{type:"button",class:"ghost danger",text:"Remove"});rm.addEventListener("click",()=>{p.criteria.splice(i,1);wizRefresh();});
+    const up=el("button",{type:"button",class:"ghost",text:"↑","aria-label":"Move up",disabled:i===0});up.addEventListener("click",()=>{p.criteria.splice(i-1,0,p.criteria.splice(i,1)[0]);wizRefresh();});
+    const det=el("details",{class:"crit"},el("summary",{},c.name+(c.kind==="calc"?" · calculated":"")+(c.group?" · "+c.group:"")));
+    const anch=k=>e.anchors&&e.anchors[k]!=null?e.anchors[k]:(c.anchors[k]||"");
+    const setA=(k,v)=>{e.anchors=Object.assign({},e.anchors||{});e.anchors[k]=v;};
+    if(c.kind==="calc"){
+      det.append(el("div",{class:"small muted",text:(c.hint||"")+" Scored from the deal's inputs; its settings are in Money and Geography."}));
+      det.append(el("ul",{class:"anchors"},...[1,3,5].map(k=>c.anchors[k]?el("li",{},el("b",{text:String(k)}),c.anchors[k]):null)));
+    }else{
+      det.append(el("div",{class:"grid2"},wfield("Name",()=>e.name!=null?e.name:c.name,v=>{e.name=v;}),wfield("Hint",()=>e.hint!=null?e.hint:(c.hint||""),v=>{e.hint=v;})));
+      for(const k of [5,4,3,2,1])det.append(wfield(k+(k===1?" (worst you'd still accept)":k===5?" (best realistic)":k===3?" (solidly OK)":" (optional)"),()=>anch(k),v=>setA(k,v),{area:true,attrs:{style:"min-height:40px"}}));
+      det.append(wfield("Broker question when it's unknown",()=>e.brokerQ!=null?e.brokerQ:(c.brokerQ||""),v=>{e.brokerQ=v;}));
+    }
+    list.append(el("div",{class:"row-actions",style:"align-items:flex-start;gap:6px"},el("div",{style:"flex:1;min-width:0"},det),up,rm));
+  });
+  const lib=wsec("Criteria library","Add any that pass the four tests for you.");
+  const have=new Set(p.criteria.map(c=>c.id));
+  const tags=el("div",{class:"tags"});
+  for(const c of LIB.criteria||[]){if(have.has(c.id))continue;
+    const b=el("button",{type:"button",class:"tag",title:c.hint||"",text:"+ "+c.name+(c.kind==="calc"?" (calculated)":"")});
+    b.addEventListener("click",()=>{p.criteria.push({id:c.id,weight:{up:0,down:0}});wizRefresh();});tags.append(b);}
+  if(!tags.children.length)tags.append(el("span",{class:"small muted",text:"You've added everything in the library."}));
+  const own=el("input",{type:"text",placeholder:"Your own criterion, e.g. \"Parking and access\""});
+  const addOwn=el("button",{type:"button",text:"Add"});
+  addOwn.addEventListener("click",()=>{const l=own.value.trim();if(!l)return;p.criteria.push({id:uniqId("custom-",l,p.criteria.map(c=>c.id)),name:l,hint:"",anchors:{1:"",3:"",5:""},brokerQ:"",weight:{up:0,down:0}});wizRefresh();});
+  lib.append(tags,el("div",{class:"perkline"},own,addOwn));
+  if(LIB.excludedOnPurpose)lib.append(el("details",{},el("summary",{text:"Left out on purpose"}),el("ul",{class:"qlist small"},...LIB.excludedOnPurpose.map(x=>el("li",{},el("b",{text:x.name+": "}),x.why)))));
+  return el("div",{style:"display:flex;flex-direction:column;gap:14px"},intro,list,lib);
+}
+
+function setupWeights(){
+  const p=wiz.profile,ids=p.criteria.map(c=>c.id),n=ids.length,N=n*(n-1)/2;
+  const wrap=el("div",{style:"display:flex;flex-direction:column;gap:14px"});
+  let q=wiz.quiz;
+  if(q&&(q.ids.length!==n||!q.ids.every((id,i)=>id===ids[i]))){q=wiz.quiz=null;wizSave();}
+  const names=Object.fromEntries(p.criteria.map(e=>[e.id,wizCrit(e)]));
+  const best=c=>c.quizBest||c.anchors[5]||"(no 5 anchor written)", worst=c=>c.quizWorst||c.anchors[1]||"(no 1 anchor written)";
+  if(n<2){wrap.append(wsec("Weights","Add at least two criteria first."));return wrap;}
+  if(!q){
+    const s=wsec("The quiz","Two rounds of this-or-that, "+N+" pairs each.");
+    s.append(el("ul",{class:"qlist small"},
+      el("li",{text:"Round A: two criteria, both at their best (your 5). Which would you rather have?"}),
+      el("li",{text:"Round B: both at their worst still acceptable (your 1). Which would you rather live with? A dealbreaker button marks a 'worst' you'd actually walk away from."}),
+      el("li",{text:"Answer fast. Keys 1–5 work. A toss-up is a real answer; just don't make it a habit."}),
+      el("li",{text:"Two sets of weights come out: upside (how much a 5 lifts Fit) and downside (how much a 1 drops it). Some things only matter when they're bad."})));
+    if(p.quiz&&p.quiz.takenAt)s.append(el("div",{class:"small muted",text:"Your current weights came from a quiz taken "+new Date(p.quiz.takenAt).toLocaleDateString()+". Retake it only if your priorities or criteria changed."}));
+    const missing=p.criteria.map(wizCrit).filter(c=>!c.anchors[1]||!c.anchors[5]);
+    if(missing.length)s.append(el("div",{class:"banner warn",style:"margin:0",text:"Write a 1 and a 5 for: "+missing.map(c=>c.name).join(", ")+" (Criteria step). The quiz shows them."}));
+    s.append(el("div",{class:"row-actions"},el("button",{type:"button",class:"primary",disabled:missing.length>0,onclick:()=>{wiz.quiz=quizNew(ids);wizRefresh();},text:"Start the quiz"})));
+    wrap.append(s);
+  }else if(!q.result){
+    const [a,b]=q.P[q.rd][q.idx],ca=names[q.ids[a]],cb=names[q.ids[b]],get=q.rd?worst:best;
+    const s=wsec(q.rd?"Round B · "+(q.idx+1)+" of "+N:"Round A · "+(q.idx+1)+" of "+N,q.rd?"Both at their worst. Which would you rather live with?":"Both at their best. Which would you rather have?");
+    s.append(el("div",{class:"progress",role:"progressbar","aria-valuenow":String(Math.round((q.rd*N+q.idx)/(2*N)*100)),"aria-valuemin":"0","aria-valuemax":"100"},el("div",{style:"width:"+Math.round((q.rd*N+q.idx)/(2*N)*100)+"%"})));
+    s.append(el("div",{class:"pair"},
+      el("div",{class:"opt"},el("div",{class:"eyebrow",text:"Left"}),el("div",{class:"crit-name",text:ca.name}),el("div",{class:"small",text:get(ca)})),
+      el("div",{class:"opt"},el("div",{class:"eyebrow",text:"Right"}),el("div",{class:"crit-name",text:cb.name}),el("div",{class:"small",text:get(cb)}))));
+    s.append(el("div",{class:"choices"},...[["-2","Left, by a lot"],["-1","Left"],["0","Toss-up"],["1","Right"],["2","Right, by a lot"]].map(([v,t])=>el("button",{type:"button",onclick:()=>quizPick(+v),text:t}))));
+    if(q.rd===1)s.append(el("div",{class:"choices deal"},...[["L","Left is a dealbreaker"],["B","Both are"],["R","Right is a dealbreaker"]].map(([d,t])=>el("button",{type:"button",onclick:()=>quizPick(d==="L"?2:d==="R"?-2:0,d),text:t}))));
+    s.append(el("div",{class:"row-actions",style:"justify-content:space-between"},el("span",{class:"small muted",text:q.quip||"Keys 1–5 work too."}),el("button",{type:"button",class:"ghost",onclick:quizBack,text:"← Back"})));
+    const quit=el("button",{type:"button",class:"ghost danger small",text:"Throw away this quiz"});
+    let armed=false;quit.addEventListener("click",()=>{if(!armed){armed=true;quit.textContent="Really? Click again";setTimeout(()=>{armed=false;quit.textContent="Throw away this quiz";},4000);return;}wiz.quiz=null;wizRefresh();});
+    s.append(quit);
+    wrap.append(s);
+  }else{
+    const res=q.result,s=wsec("Your weights","From the quiz. Each column sums to 100.");
+    const rows=res.rows.slice().sort((x,y)=>y.combinedPct-x.combinedPct);
+    s.append(el("div",{class:"tablewrap"},el("table",{},
+      el("thead",{},el("tr",{},el("th",{text:"Criterion"}),el("th",{class:"n",text:"Upside"}),el("th",{class:"n",text:"Downside"}),el("th",{class:"n",text:"Combined %"}),el("th",{class:"n",text:"Dealbreaker"}))),
+      el("tbody",{},...rows.map(r=>el("tr",{},el("td",{text:names[r.id].name}),el("td",{class:"n",text:String(r.up)}),el("td",{class:"n",text:String(r.down)}),el("td",{class:"n",text:r.combinedPct.toFixed(1)}),el("td",{class:"n",text:r.dealbreakers?"×"+r.dealbreakers:"—"})))))));
+    const notes=[];
+    notes.push("Circular answers (A over B over C over A): "+res.loops.A+" in round A, "+res.loops.B+" in round B. A few are normal; lots means you were tired or indifferent.");
+    notes.push("Toss-ups: "+res.tossups.A+" in round A, "+res.tossups.B+" in round B.");
+    const lop=res.rows.filter(r=>Math.abs(r.up-r.down)>=8);
+    if(lop.length)notes.push("Lopsided: "+lop.map(r=>names[r.id].name+" ("+r.up+" up / "+r.down+" down: matters mostly when it's "+(r.up>r.down?"good":"bad")+")").join(", ")+". Two-sided scoring uses that.");
+    const dbk=res.rows.filter(r=>r.dealbreakers>=Math.max(2,Math.ceil((n-1)/3)));
+    s.append(el("ul",{class:"qlist small"},...notes.map(t=>el("li",{text:t}))));
+    if(dbk.length)s.append(el("div",{class:"banner warn",style:"margin:0"},"Gate candidates: "+dbk.map(r=>names[r.id].name+" (dealbreaker ×"+r.dealbreakers+")").join(", ")+". If the worst version is a walk-away, the anchor isn't 'worst still acceptable'. Either move that part into a gate, or rewrite the 1 anchor to something you'd accept, then retake round B. Otherwise the weight is inflated by a deal you'd never take."));
+    const retakeB=el("button",{type:"button",text:"Retake round B only"});
+    retakeB.addEventListener("click",()=>{q.A[1]=[];q.DB[1]=[];q.rd=1;q.idx=0;q.result=null;wizRefresh();});
+    const retake=el("button",{type:"button",text:"Retake the whole quiz"});
+    retake.addEventListener("click",()=>{wiz.quiz=quizNew(ids);wizRefresh();});
+    s.append(el("div",{class:"row-actions"},retakeB,retake));
+    wrap.append(s);
+  }
+  // manual weights: a fallback, and a place to nudge the quiz's output
+  const m=el("details",{class:"sec"},el("summary",{text:"Type or adjust weights by hand"}));
+  const sums=el("div",{class:"small"});
+  const paintSums=()=>{const u=p.criteria.reduce((a,c)=>a+(Number(c.weight&&c.weight.up)||0),0),d=p.criteria.reduce((a,c)=>a+(Number(c.weight&&c.weight.down)||0),0);
+    sums.textContent="Upside sums to "+u+", downside to "+d+(u===100&&d===100?". Good.":". Each should be 100.");sums.className="small "+(u===100&&d===100?"muted":"");};
+  const tb=el("tbody");
+  for(const e of p.criteria){e.weight=e.weight||{up:0,down:0};
+    const wi=k=>wfield("",()=>String(e.weight[k]||0),v=>{const x=parseN(v);if(x!=null&&x>=0)e.weight[k]=x;},{mode:"decimal",after:paintSums});
+    tb.append(el("tr",{},el("td",{text:names[e.id].name}),el("td",{style:"width:110px"},wi("up")),el("td",{style:"width:110px"},wi("down"))));}
+  const norm=el("button",{type:"button",text:"Scale both columns to 100"});
+  norm.addEventListener("click",()=>{for(const k of ["up","down"]){const ws=p.criteria.map(c=>Number(c.weight[k])||0),s0=ws.reduce((a,b)=>a+b,0);if(s0>0){const r=round100(ws.map(w=>w/s0*100));p.criteria.forEach((c,i)=>{c.weight[k]=r[i];});}}wizRefresh();});
+  m.append(el("div",{class:"tablewrap"},el("table",{},el("thead",{},el("tr",{},el("th",{text:"Criterion"}),el("th",{text:"Upside"}),el("th",{text:"Downside"}))),tb)),sums,el("div",{class:"row-actions"},norm));
+  paintSums();
+  wrap.append(m);
+  return wrap;
+}
+
+function setupGeoJoy(){
+  const p=wiz.profile,G=p.geo,J=p.joy,H=p.household;
+  const g=wsec("Geography","Distance only matters as much as the business needs you there.");
+  const region=G.regionLimit;
+  g.append(el("div",{class:"grid2"},
+    wfield("Region limit (a state, metro or country)",()=>G.regionLimit||"",v=>{G.regionLimit=v;const rg=(p.gates.manual||[]).find(x=>x.id==="region");if(rg&&(!rg.text||rg.text===region))rg.text=v;},{ph:"e.g. Example State"}),
+    wfield("Home base (for drive-time estimates)",()=>G.homeBase||"",v=>{G.homeBase=v;},{ph:"A town or ZIP is enough"})));
+  g.append(el("div",{class:"small muted",text:"Home base is used only when Claude estimates drive times. It stays in this Scorecard (and any config you export); keep exported configs out of public places."}));
+  g.append(el("div",{class:"small",style:"font-weight:600",text:"Longest one-way drive you'd accept, in minutes, if you had to be there:"}));
+  g.append(el("div",{class:"grid2"},wnum("Daily",G.presenceLimits,"daily","e.g. 25"),wnum("A few days a week",G.presenceLimits,"few","e.g. 50"),
+    wnum("Weekly",G.presenceLimits,"weekly","e.g. 90"),wnum("Weekly, stretch (flagged)",G.presenceLimits,"weeklyStretch","e.g. 150"),wnum("Full marks within (minutes)",G,"fullScoreWithin","e.g. 10")));
+  const pt=el("input",{type:"checkbox",checked:G.presenceFromTeam!==false});pt.addEventListener("change",()=>{G.presenceFromTeam=pt.checked;wizSave();});
+  g.append(el("label",{class:"check"},pt,"When a listing doesn't say how often the owner is there, guess from Team in place (strong team → weekly, no team → daily)"));
+  const j=wsec("Joy","The second axis. Fit is whether it's a good deal; Joy is whether you'd want to own it.");
+  j.append(wfield("The question",()=>J.question||"",v=>{J.question=v;}));
+  for(const k of [5,4,3,2,1])j.append(wfield(String(k)+(k===5?" (be specific: which kinds of business light you up?)":k===1?" (what would you dread?)":""),()=>J.anchors[k]||"",v=>{J.anchors[k]=v;},{area:true,attrs:{style:"min-height:40px"}}));
+  j.append(el("div",{class:"grid2"},wnum("Plan discount (Joy from a bigger plan counts this much less)",J,"planDiscount","1"),wnum("Quadrant line: Fit",J,"fitCut","60"),wnum("Quadrant line: Joy",J,"joyCut","3.5")));
+  j.append(el("div",{class:"small muted",text:"Joy never raises Fit. A business you love with weak numbers lands in Siren song on purpose."}));
+  const h=wsec("Household check","A reminder, no score effect, when the handover looks thin.");
+  const he=el("input",{type:"checkbox",checked:!!H.enabled});he.addEventListener("change",()=>{H.enabled=he.checked;wizSave();});
+  h.append(el("label",{class:"check"},he,"Warn me when a deal is weak on team, owner dependence and transition support"),
+    wfield("Who you'd talk it over with",()=>H.partnerLabel||"",v=>{H.partnerLabel=v;},{ph:"e.g. your partner"}));
+  return el("div",{style:"display:flex;flex-direction:column;gap:14px"},g,j,h);
+}
+
+function setupFinish(){
+  const p=wiz.profile,issues=[],ok=[];
+  const crit=p.criteria.map(wizCrit);
+  const u=p.criteria.reduce((a,c)=>a+(Number(c.weight&&c.weight.up)||0),0),d=p.criteria.reduce((a,c)=>a+(Number(c.weight&&c.weight.down)||0),0);
+  if(!crit.length)issues.push("No criteria.");
+  if(u!==100||d!==100)issues.push("Weights sum to "+u+" (upside) and "+d+" (downside); each should be 100. Take the quiz or fix them by hand.");
+  const noAnch=crit.filter(c=>c.kind==="judgment"&&(!c.anchors[1]||!c.anchors[3]||!c.anchors[5]));
+  if(noAnch.length)issues.push("Missing a 1, 3 or 5 anchor: "+noAnch.map(c=>c.name).join(", ")+".");
+  for(const [k,l] of [["cashDown","cash"],["projectCap","project cap"],["operatorSalary","salary"],["projectFactor","project factor"]])if(!(p.money[k]>0))issues.push("Money: "+l+" isn't set.");
+  if((p.gates.manual||[]).some(g=>!String(g.label||"").trim()))issues.push("A gate has no label.");
+  const rg=(p.gates.manual||[]).find(g=>g.id==="region");if(rg&&!String(rg.text||"").trim())issues.push("The region gate has no region.");
+  if(!(J=>[1,2,3,4,5].every(k=>String(J.anchors[k]||"").trim()))(p.joy))issues.push("Some Joy anchors are empty.");
+  if(!p.quiz||!p.quiz.takenAt)ok.push("You set weights without the quiz. That works; the quiz is still there if you want it.");
+  const age=Date.parse(p.rates.primeCheckedOn||"");if(!isFinite(age)||Date.now()-age>PRIME_STALE_DAYS*864e5)issues.push("The prime rate hasn't been checked in the last "+PRIME_STALE_DAYS+" days.");
+  const s=wsec("Review and save");
+  const hardN=(p.gates.manual||[]).filter(g=>g.tier==="hard").length+Object.values(p.gates.builtin||{}).filter(g=>g.enabled!==false&&g.tier==="hard").length;
+  s.append(el("ul",{class:"qlist small"},
+    el("li",{text:"Money: "+money(p.money.cashDown)+" in, up to "+money(p.money.projectCap)+" total, "+money(p.money.operatorSalary)+" salary, SDE floor "+money(p.money.sdeFloor)+"."}),
+    el("li",{text:"Gates: "+hardN+" hard, "+((p.gates.manual||[]).filter(g=>g.tier==="soft").length+Object.values(p.gates.builtin||{}).filter(g=>g.enabled!==false&&g.tier==="soft").length)+" soft, "+(p.gates.manual||[]).filter(g=>g.tier==="digest-only").length+" digest-only."}),
+    el("li",{text:"Criteria: "+crit.map(c=>c.name+" "+(c.weight?c.weight.up+"/"+c.weight.down:"")).join(" · ")}),
+    el("li",{text:"Region: "+(p.geo.regionLimit||"(none)")+". Drive limits: daily "+p.geo.presenceLimits.daily+", a few days "+p.geo.presenceLimits.few+", weekly "+p.geo.presenceLimits.weekly+" min."})));
+  if(issues.length)s.append(el("div",{class:"banner warn",style:"margin:0"},el("div",{style:"font-weight:600",text:"Fix before saving:"}),el("ul",{class:"qlist"},...issues.map(t=>el("li",{text:t})))));
+  if(ok.length)s.append(el("ul",{class:"qlist small muted"},...ok.map(t=>el("li",{text:t}))));
+  const status=el("div",{class:"small muted",role:"status"});
+  const save=el("button",{type:"button",class:"primary",text:"Save to my Scorecard",disabled:issues.length>0||(!localMode&&!canWrite)});
+  save.addEventListener("click",async()=>{
+    const prof=Object.assign(clone(p),{schema:1,configured:true,updatedAt:new Date().toISOString()});
+    await setProfile(prof,true);
+    try{localStorage.removeItem(SETUP_KEY);}catch(e){}
+    wiz=null;status.textContent="Saved.";go("pipe");
+  });
+  const exp=el("button",{type:"button",text:"Export this config"});
+  exp.addEventListener("click",()=>offerFile("acq-config.json",JSON.stringify(Object.assign(clone(p),{schema:1,configured:true,exportedAt:new Date().toISOString()}),null,2),status));
+  s.append(el("div",{class:"row-actions"},save,exp),status);
+  if(!localMode&&!canWrite)s.append(el("div",{class:"small muted",text:"You can view this Scorecard but not change it. Export the config instead."}));
+  s.append(el("div",{class:"small muted",text:"Saving replaces your Scorecard's settings. Deals you've already scored keep their scores and recalculate with the new weights. Keep an exported copy somewhere private: it's the backup."}));
+  return s;
+}
+
 /* ---------- boot ---------- */
 // Lets Claude run the scoring engine on a deal (e.g. the Fit snapshot taken when a deal graduates to the Deal Room).
 // testProfile() swaps in a profile for this page view only; it is never saved.
@@ -1324,6 +1752,7 @@ window.ascEngine={
 $("#nav-pipe").addEventListener("click",()=>go("pipe"));
 $("#nav-settings").addEventListener("click",()=>go("settings"));
 $("#nav-cheat").addEventListener("click",()=>go("cheat"));
+$("#nav-setup").addEventListener("click",()=>go("setup"));
 $("#new-deal").addEventListener("click",newDeal);
 
 function startLocal(why){
@@ -1353,7 +1782,7 @@ else{
     },()=>{setBanner("Lost the connection to your saved deals. Reload the page.");});
     db.doc("config/profile").onSnapshot(s=>{
       rawProfile=s.exists?s.data():null;P=resolveProfile(rawProfile);
-      if(view.name==="deal")refreshSide();else if(view.name!=="settings")render();
+      if(view.name==="deal")refreshSide();else if(view.name!=="settings"&&view.name!=="setup")render();
     },()=>{});
     db.doc("config/multiples").onSnapshot(s=>{if(s.exists){const rows=s.data().rows;multiples=Array.isArray(rows)?rows.map(x=>Object.assign({},x)):[];}},()=>{});
   }).catch(()=>startLocal("The database failed to load."));
