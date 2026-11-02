@@ -1,0 +1,115 @@
+{
+  "about": "Gates end the conversation; criteria are trade-offs. A hard gate puts a deal out. A soft gate keeps it visible but flags it, takes a Fit penalty, and asks you to write down why you're still looking. 'digest-only' gates are applied by the listing digest when it screens alerts, but have no checkbox in the Scorecard. 'builtin' gates are calculated from the deal's numbers; the rest are checkboxes you tick per deal. Every template can be switched off, retiered or reworded, and you can write your own.",
+  "builtin": [
+    {
+      "id": "cap", "label": "Total project over your cap", "tier": "hard", "enabled": true,
+      "explain": "Total project = (asking price + inventory sold on top) x your project factor. Over your cap, the deal is out.",
+      "digestRule": "Skip when (asking + inventory sold on top + any real estate sold separately) x project factor is over the cap."
+    },
+    {
+      "id": "declining", "label": "Declining revenue", "tier": "hard", "enabled": true, "overrulable": true,
+      "explain": "Trips when the figures shown are down. Overrulable later (once revenue is confirmed and the cause understood), which turns it into a soft gate.",
+      "brokerQ": "Why is revenue declining, and what does year-to-date look like?",
+      "digestRule": "Skip only when figures the listing actually shows are falling. Never infer a decline from wording; no trend data is not a decline."
+    },
+    {
+      "id": "sdeFloor", "label": "SDE under your floor", "tier": "soft", "enabled": true,
+      "explain": "Seller's discretionary earnings below the minimum you set in Money.",
+      "brokerQ": "Any add-backs missing from the SDE figure? How flexible is the price given the earnings?"
+    },
+    {
+      "id": "dscr", "label": "Fails the loan-coverage test at asking price", "tier": "soft", "enabled": true,
+      "explain": "DSCR (money left to pay the loan after your salary, divided by loan payments) below your coverage floor. Soft, because price is negotiable.",
+      "brokerQ": "Is the asking price firm? Would the seller carry part of it as a note?"
+    },
+    {
+      "id": "cashOnly", "label": "Cash-only, and it costs more than your cash", "tier": "soft", "enabled": true,
+      "explain": "The seller won't take bank financing and the total project is more than your cash down.",
+      "brokerQ": "Would the seller accept an SBA buyer or carry a note, or come down on price?"
+    },
+    {
+      "id": "commute", "label": "Past your commute limit", "tier": "soft", "enabled": true,
+      "explain": "One-way drive longer than your limit for how often you'd need to be there.",
+      "brokerQ": "How often does the owner actually need to be on site?"
+    },
+    {
+      "id": "landLease", "label": "Land lease", "tier": "soft", "enabled": true,
+      "explain": "The business owns the building but leases the ground under it.",
+      "brokerQ": "Land lease terms: years remaining, rent escalations, renewal rights?"
+    },
+    {
+      "id": "turnaround", "label": "Turnaround with a non-operational problem", "tier": "soft", "enabled": true,
+      "explain": "The business is in trouble for reasons operations can't fix: a dying market, legal or regulatory trouble, a lost anchor contract.",
+      "brokerQ": "What's driving the problem, and what has the owner already tried?"
+    }
+  ],
+  "templates": [
+    {
+      "id": "food", "label": "Food service", "tier": "hard",
+      "explain": "Any business that needs licensing for fresh or unpackaged food. A shop selling only packaged goods passes.",
+      "digestRule": "Restaurants, cafes, bakeries, food trucks, caterers, and shops with a deli or hot-food counter."
+    },
+    {
+      "id": "trade", "label": "The owner role needs hands-on trade knowledge", "tier": "hard",
+      "explain": "Test: would you need to know the trade to run it? A trade business with its technicians in place, where the gap is operations, passes.",
+      "digestRule": "Gate only when the owner must personally hold or perform the licensed trade work."
+    },
+    {
+      "id": "region", "label": "Outside my region", "tier": "hard", "needsText": "region",
+      "explain": "Outside the area you set in Geography (a state, a metro, a country). A remote business you can run from home passes.",
+      "digestRule": "Gate only when the operation physically sits outside the region and needs presence there."
+    },
+    {
+      "id": "ownerProduct", "label": "The owner is the product", "tier": "hard",
+      "explain": "Nothing transferable: a personal brand, an artist's own work, a solo practitioner's practice with no other providers.",
+      "digestRule": "Solo practitioner or personal-brand businesses with no other providers."
+    },
+    {
+      "id": "foreignOps", "label": "Operations outside my country", "tier": "hard",
+      "explain": "For online businesses: where the operations are, not just where the company is registered. US SBA loans generally need a US business ⚑ verify.",
+      "digestRule": "Skip online businesses whose operations are abroad. If the listing doesn't say, load it with a flag."
+    },
+    {
+      "id": "route", "label": "Route businesses", "tier": "digest-only",
+      "explain": "Distributor, delivery, vending or service routes sold as a fixed circuit of stops.",
+      "digestRule": "The title or description calls it a route, or what's being bought is a fixed circuit of stops worked by a driver. A multi-crew service company that schedules in routes loads with a flag."
+    },
+    {
+      "id": "fintech", "label": "Fintech", "tier": "digest-only",
+      "explain": "Businesses whose product is moving, lending, holding or trading money. Money-adjacent services (tax prep, bookkeeping, insurance agencies) pass.",
+      "digestRule": "Payment processing, merchant services, lending, crypto or trading tools, money transmitters, check cashing."
+    },
+    {
+      "id": "franchise", "label": "Franchise resale", "tier": "soft",
+      "explain": "You'd be buying into a franchisor's rules, fees and approval process.",
+      "brokerQ": "Franchise fees and royalties, years left on the agreement, and the franchisor's transfer requirements?",
+      "digestRule": "Listings described as a franchise resale. Franchise ads in alert emails are not listings."
+    },
+    {
+      "id": "healthLicensed", "label": "Licensed health care", "tier": "hard",
+      "explain": "Clinics and practices that need licensed providers and insurance billing.",
+      "digestRule": "Medical, dental, therapy or pharmacy businesses that bill insurance or need licensed providers."
+    },
+    {
+      "id": "vice", "label": "Industries I won't own", "tier": "hard", "needsText": "list",
+      "explain": "A list you write: industries you won't put your name on, whatever the numbers say.",
+      "digestRule": "Skip listings in the industries named in this gate's text."
+    },
+    {
+      "id": "onlineOnly", "label": "Online-only businesses", "tier": "hard",
+      "explain": "If you only want a place you can walk into.",
+      "digestRule": "SaaS, apps, content sites, e-commerce with no physical operation."
+    },
+    {
+      "id": "homeBased", "label": "Home-based (nothing physical to buy)", "tier": "soft",
+      "explain": "Run from the seller's house, often a sign the owner is the business.",
+      "brokerQ": "What exactly transfers: customer list, contracts, equipment, staff?"
+    }
+  ],
+  "custom": {
+    "id": "custom-<slug>", "label": "Your words", "tier": "hard | soft | digest-only",
+    "explain": "One sentence: what trips it, and what passes.",
+    "brokerQ": "For soft gates: the question that would clear it.",
+    "digestRule": "Optional: how the digest should recognize it in a listing."
+  }
+}

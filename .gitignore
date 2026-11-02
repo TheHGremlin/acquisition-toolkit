@@ -1,0 +1,24 @@
+# Your own search lives here: config, artifact links, deal files. Never commit it.
+my-search/
+Deals/
+deals/
+
+# Generated workbooks and exports (examples/ is the exception)
+*.xlsx
+!examples/**/*.xlsx
+*.pdf
+!examples/**/*.pdf
+out/
+state.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

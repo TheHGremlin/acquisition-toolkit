@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "profileName": "Example searcher (fictional)",
+  "updatedAt": "2026-11-02T00:00:00Z",
+  "voice": "snarky",
+
+  "money": {
+    "cashDown": 300000,
+    "projectCap": 2000000,
+    "projectFactor": 1.10,
+    "operatorSalary": 120000,
+    "sdeFloor": 150000,
+    "loanTermYears": 10,
+    "realEstateTermYears": 25,
+    "softGatePenalty": 5,
+    "rentFlagPct": 10,
+    "tinyLoan": 25000
+  },
+
+  "rates": {
+    "note": "Rough US SBA 7(a) assumptions, not advice. Check current figures before trusting the math.",
+    "prime": 7.0,
+    "primeCheckedOn": "2026-10-27",
+    "primeSource": "FRED series DPRIME (bank prime loan rate)",
+    "sbaTiers": [
+      { "upTo": 50000, "spread": 6.5 },
+      { "upTo": 250000, "spread": 6.0 },
+      { "upTo": 350000, "spread": 4.5 },
+      { "upTo": null, "spread": 3.0 }
+    ],
+    "sbaTiersCheckedOn": "2026-11-02",
+    "sbaTiersSource": "SBA.gov, 7(a) terms and conditions: maximum spreads for variable-rate loans by loan amount"
+  },
+
+  "bands": {
+    "takeHome": [[240000, 5], [195000, 4], [165000, 3], [135000, 2]],
+    "dscr": [[1.75, 5], [1.5, 4], [1.35, 3], [1.25, 2]],
+    "dscrGate": 1.25
+  },
+
+  "gates": {
+    "builtin": {
+      "cap": { "tier": "hard", "enabled": true },
+      "declining": { "tier": "hard", "enabled": true, "overrulable": true },
+      "sdeFloor": { "tier": "soft", "enabled": true },
+      "dscr": { "tier": "soft", "enabled": true },
+      "cashOnly": { "tier": "soft", "enabled": true },
+      "commute": { "tier": "soft", "enabled": true },
+      "landLease": { "tier": "soft", "enabled": true },
+      "turnaround": { "tier": "soft", "enabled": true }
+    },
+    "manual": [
+      { "id": "food", "label": "Food service", "tier": "hard",
+        "explain": "Any business that needs licensing for fresh or unpackaged food. A shop selling only packaged goods passes.",
+        "digestRule": "Restaurants, cafes, bakeries, food trucks, caterers, and shops with a deli or hot-food counter." },
+      { "id": "region", "label": "Outside my region", "tier": "hard", "text": "Example State",
+        "explain": "Outside Example State. A remote business you can run from home passes.",
+        "digestRule": "Gate only when the operation physically sits outside Example State and needs presence there." },
+      { "id": "ownerProduct", "label": "The owner is the product", "tier": "hard",
+        "explain": "Nothing transferable: a personal brand, an artist's own work, a solo practitioner's practice.",
+        "digestRule": "Solo practitioner or personal-brand businesses with no other providers." },
+      { "id": "franchise", "label": "Franchise resale", "tier": "soft",
+        "explain": "You'd be buying into a franchisor's rules, fees and approval process.",
+        "brokerQ": "Franchise fees and royalties, years left on the agreement, and the franchisor's transfer requirements?",
+        "digestRule": "Listings described as a franchise resale. Franchise ads in alert emails are not listings." },
+      { "id": "custom-car-wash", "label": "Car washes", "tier": "digest-only",
+        "explain": "Fictional example of a personal screen-out: this searcher has decided against car washes.",
+        "digestRule": "Any listing whose main business is a car wash." }
+    ]
+  },
+
+  "criteria": [
+    { "id": "predictability", "weight": { "up": 14, "down": 12 } },
+    { "id": "dealMath", "weight": { "up": 16, "down": 18 } },
+    { "id": "track", "weight": { "up": 15, "down": 8 } },
+    { "id": "ownerDep", "weight": { "up": 10, "down": 15 } },
+    { "id": "seasonality", "weight": { "up": 9, "down": 10 } },
+    { "id": "premises", "weight": { "up": 6, "down": 14 } },
+    { "id": "team", "weight": { "up": 13, "down": 9 } },
+    { "id": "commute", "weight": { "up": 4, "down": 6 } },
+    { "id": "upside", "weight": { "up": 8, "down": 2 } },
+    { "id": "transition", "weight": { "up": 5, "down": 6 } }
+  ],
+  "criteriaNote": "Each entry refers to the criteria library by id. Add 'name', 'hint', 'anchors' or 'brokerQ' to override the library text, or give a new id with all fields to add a custom judgment criterion. Up and down weights each sum to 100.",
+
+  "quiz": {
+    "takenAt": null,
+    "loops": null,
+    "tossups": null,
+    "dealbreakers": {}
+  },
+
+  "track": {
+    "yearBands": [3, 6, 10, 15],
+    "growthBonus": 1
+  },
+
+  "geo": {
+    "homeBase": "",
+    "homeBaseNote": "Used only by Claude for drive-time estimates. Stays in your database; never commit it.",
+    "regionLimit": "Example State",
+    "fullScoreWithin": 10,
+    "presenceLimits": { "daily": 25, "few": 50, "weekly": 90, "weeklyStretch": 150 },
+    "presenceBonus": { "weekly": 1, "few": 0.5 },
+    "presenceFromTeam": true
+  },
+
+  "joy": {
+    "question": "How interesting or passionate am I, or could I be, about this business?",
+    "anchors": {
+      "1": "Dull or mildly icky. I'd be counting the days.",
+      "2": "Meh. The money is the only interesting part.",
+      "3": "Pleasant. I'd happily explain it at a party.",
+      "4": "Genuinely interesting: next to things I like, or a people-and-process puzzle that hooks me.",
+      "5": "I'd be excited to tell people I own it (for this example searcher: bike shops, print shops, maker spaces)."
+    },
+    "planDiscount": 1,
+    "fitCut": 60,
+    "joyCut": 3.5,
+    "sirenJoy": 4,
+    "sirenFit": 45,
+    "shoesJoy": 2,
+    "shoesFit": 70
+  },
+
+  "household": {
+    "enabled": true,
+    "partnerLabel": "your partner",
+    "criteria": ["team", "ownerDep", "transition"],
+    "lowAtOrBelow": 2,
+    "minLow": 2,
+    "noneAtOrAbove": 4
+  },
+
+  "lien": {
+    "enabled": true,
+    "note": "Rough US SBA 7(a) assumption, not advice: when business assets don't cover the loan, lenders generally take a lien on personal real estate for the gap. The haircuts are guesses; ask a lender.",
+    "reHaircut": 0.85,
+    "ffeHaircut": 0.5
+  },
+
+  "perks": [
+    ["Excess inventory", 1],
+    ["Equipment or vehicles included", 1],
+    ["Seller financing offered", 1],
+    ["Seller note on standby", 2],
+    ["Transferable contracts", 2],
+    ["Owned brand, IP or online presence", 1],
+    ["Recent big repairs done", 1],
+    ["SBA pre-qualified", 1]
+  ],
+  "dings": [
+    ["Equipment near end of life", -1],
+    ["Major equipment replacement due", -2],
+    ["Deferred maintenance", -1],
+    ["Pending regulatory or zoning issue", -2],
+    ["Old or slow inventory sold on top", -1],
+    ["Bad reviews or reputation", -1]
+  ],
+  "perkCap": 5,
+
+  "digest": {
+    "gmailQuery": "label:business-listings OR from:(bizbuysell.com OR bizquest.com OR acquire.com)",
+    "sites": ["BizBuySell", "BizQuest", "Acquire"],
+    "topTierPreferences": "Stable, recurring revenue; low seasonality; a team in place; within about 50 minutes of home unless it runs without the owner."
+  },
+
+  "links": {
+    "dealRoom": "",
+    "listingDigest": ""
+  }
+}
