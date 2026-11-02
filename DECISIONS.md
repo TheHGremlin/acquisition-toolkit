@@ -30,7 +30,7 @@ Checked against the Claude Code plugin and marketplace docs and the claude.com p
 
 | ID | Decision | Status |
 |---|---|---|
-| X01 | The repository is a plugin marketplace (`.claude-plugin/marketplace.json`) listing one plugin at `./plugins/acq`, the documented layout. | LOCKED |
+| X01 | The repository is a plugin marketplace (`.claude-plugin/marketplace.json`, name `acquisition-toolkit`) listing one plugin at `./plugins/acq`, the documented layout. Install id: `acq@acquisition-toolkit`. Validated and install-tested 2026-11-02. | LOCKED |
 | X02 | Skills reference bundled pages and templates through `${CLAUDE_PLUGIN_ROOT}`. | LOCKED |
 | X03 | No top-level `bin/` in the plugin: claude.ai and Cowork refuse plugins that have one. Scripts live in `tools/`. | LOCKED |
 | X04 | ⚑ Not every account may have the Artifact tool or the `db`, `user` and `sample` capabilities. `/acq:setup` checks first and falls back to local HTML. | OPEN (verify) |
@@ -52,3 +52,6 @@ Checked against the Claude Code plugin and marketplace docs and the claude.com p
 | B10 | Quiz cards show the criterion's own 5 and 1 anchors, so a criterion needs both before the quiz starts. | LOCKED |
 | B11 | A criterion marked a dealbreaker in at least a third of its round-B pairs (minimum 2) is flagged as a gate candidate, with the advice to re-anchor or gate it and retake round B. | LOCKED |
 | B12 | "Start from scratch" blanks the money fields so example numbers can't slip through; the Finish step blocks saving until weights sum to 100, judgment criteria have 1/3/5 anchors, money is set, the region gate has a region, and prime was checked in the last 60 days. | LOCKED |
+| S01 | `/acq:setup` works in a private `my-search/` folder (links in `toolkit.json`, config backup in `config.json`, page copies in `pages/`), refuses to run inside a clone of the toolkit, and adds `my-search/` to `.gitignore` when the folder is a git repository. | LOCKED |
+| S02 | Every published page's database rule is root read `view`, write `admin`, so sharing by link lets people read but not edit; the partner quiz keeps the original per-person results rule. | LOCKED |
+| S03 | Updating a page republishes the user's copy to the same URL without `capabilities` or `icon`, so the existing ones stay; data in the database is untouched. | LOCKED |

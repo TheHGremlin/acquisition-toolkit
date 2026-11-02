@@ -1,0 +1,14 @@
+{
+  "name": "acquisition-toolkit",
+  "description": "A blank, configurable toolkit for searching for a small business to buy: first-look scorecard with a setup wizard, deal room, listing digest and deal-review skills.",
+  "owner": {
+    "name": "TheHGremlin"
+  },
+  "plugins": [
+    {
+      "name": "acq",
+      "source": "./plugins/acq",
+      "description": "Acquisition search toolkit: publish your own Scorecard (with a setup wizard and swing-weighting quiz), then screen listings and review deals."
+    }
+  ]
+}

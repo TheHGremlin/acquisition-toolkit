@@ -1,0 +1,10 @@
+{
+  "name": "acq",
+  "version": "0.1.0",
+  "description": "Acquisition search toolkit: publish your own first-look Scorecard (with a setup wizard and swing-weighting quiz) as a claude.ai Artifact, then screen listings and review deals. Not financial, legal or lending advice.",
+  "author": {
+    "name": "TheHGremlin"
+  },
+  "license": "MIT",
+  "keywords": ["acquisition", "search fund", "ETA", "small business", "scorecard", "due diligence"]
+}
