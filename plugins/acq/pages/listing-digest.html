@@ -1,0 +1,259 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Listing Digest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column; latest digest open, older digests collapsed below. Same tokens as the Scorecard. */
+:root {
+  --bg: #F5F3F7;
+  --surface: #F2E7F7;
+  --band: #FFFFFF;
+  --ink: #25212C;
+  --muted: #6C6577;
+  --rule: #E2DDE8;
+  --accent: #9446B3;
+  --accent-deco: #C68BDF;
+  --charcoal: #25212C;
+  --on-charcoal: #FFFFFF;
+  --good: #2C7A57;
+  --warn: #A86A12;
+  --bad: #B03445;
+  --font-display: "Unbounded", "Figtree", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17151B; --surface: #36283F; --band: #211E27; --ink: #EEEAF3; --muted: #A39BAF;
+    --rule: #34303C; --accent: #C68BDF; --accent-deco: #9446B3; --charcoal: #211E27; --on-charcoal: #EEEAF3;
+    --good: #5DBE8E; --warn: #E3AA52; --bad: #E86B7C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17151B; --surface: #36283F; --band: #211E27; --ink: #EEEAF3; --muted: #A39BAF;
+  --rule: #34303C; --accent: #C68BDF; --accent-deco: #9446B3; --charcoal: #211E27; --on-charcoal: #EEEAF3;
+  --good: #5DBE8E; --warn: #E3AA52; --bad: #E86B7C; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-weight: 400; font-size: 16.5px; line-height: 1.5; }
+header.top { background: var(--charcoal); color: var(--on-charcoal); border-bottom: 4px solid var(--accent-deco); }
+.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top .wrap { padding-block: 22px 18px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 5vw, 40px); letter-spacing: .02em; margin: 0; text-wrap: balance; }
+header.top a { color: var(--on-charcoal); font-weight: 600; text-underline-offset: 3px; text-decoration-color: var(--accent-deco); }
+main .wrap { padding-block: 24px 64px; display: grid; gap: 28px; }
+.state { color: var(--muted); padding: 24px; background: var(--band); border-radius: 6px; }
+.digest-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 3.6vw, 30px); margin: 0; color: var(--accent); }
+.meta { color: var(--muted); font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.summary { margin: 8px 0 0; max-width: 68ch; }
+h3 { font-family: var(--font-display); font-weight: 600; font-size: 19px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 22px 0 10px; }
+.cards { display: grid; gap: 12px; }
+.card { background: var(--surface); border-left: 4px solid var(--accent-deco); border-radius: 4px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
+.card.loaded { background: var(--band); border-left-color: var(--rule); }
+.card-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.name { font-weight: 700; font-size: 18px; color: var(--ink); text-decoration: none; }
+a.name:hover, a.name:focus-visible { color: var(--accent); text-decoration: underline; }
+.loc { color: var(--muted); font-size: 14.5px; }
+.nums { display: flex; flex-wrap: wrap; gap: 4px 18px; font-variant-numeric: tabular-nums; font-size: 15px; }
+.nums b { font-weight: 600; }
+.why { margin: 0; max-width: 70ch; }
+.napkin { color: var(--muted); font-size: 14.5px; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 13px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; }
+.chip.flag { color: var(--warn); }
+.chip.src { color: var(--muted); }
+ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+ul.plain li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; padding: 8px 12px; background: var(--band); border-radius: 4px; }
+ul.plain .reason { color: var(--muted); font-size: 14.5px; }
+ul.plain a { color: var(--accent); font-weight: 600; }
+.errors li { color: var(--bad); }
+details.old { border-top: 1px solid var(--rule); padding-top: 12px; }
+details.old > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+details.old > summary::-webkit-details-marker { display: none; }
+details.old > summary::before { content: "▸"; color: var(--accent); }
+details.old[open] > summary::before { content: "▾"; }
+details.old > summary .d { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--ink); }
+details.old .body { padding-top: 10px; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <h1>Listing Digest</h1>
+    <a id="asc-link" href="#" target="_blank" rel="noopener" hidden>Open the Acquisition Scorecard →</a>
+  </div>
+</header>
+<main>
+  <div class="wrap" id="root">
+    <div class="state" id="status">Loading digests… Each evening's run adds a new digest here: new listings from your listing-alert emails, screened against your hard gates and loaded into the Scorecard at "Needs judgment calls." The digest is written by the listing-digest skill.</div>
+  </div>
+</main>
+
+<script>
+(function () {
+  var root = document.getElementById("root");
+  var statusEl = document.getElementById("status");
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function money(v) {
+    if (v == null || v === "" || isNaN(Number(v))) return "?";
+    var n = Number(v);
+    if (n >= 1e6) return "$" + (n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 2).replace(/\.?0+$/, "") + "M";
+    if (n >= 1e3) return "$" + Math.round(n / 1e3) + "K";
+    return "$" + n;
+  }
+  function safeUrl(u) {
+    return typeof u === "string" && /^https:\/\//i.test(u) ? u : null;
+  }
+  function fmtDate(iso) {
+    var d = new Date(iso + "T12:00:00");
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  }
+
+  function card(item, loaded) {
+    var c = el("div", "card" + (loaded ? " loaded" : ""));
+    var top = el("div", "card-top");
+    var url = safeUrl(item.link);
+    var name = el(url ? "a" : "span", "name", item.name || "Untitled listing");
+    if (url) { name.href = url; name.target = "_blank"; name.rel = "noopener"; }
+    top.appendChild(name);
+    top.appendChild(el("span", "loc", [item.industry, item.location].filter(Boolean).join(" · ")));
+    c.appendChild(top);
+    var nums = el("div", "nums");
+    [["Asking", item.asking], ["SDE", item.sde], ["Revenue", item.revenue]].forEach(function (p) {
+      var s = el("span");
+      s.appendChild(el("b", null, p[0] + " "));
+      s.appendChild(document.createTextNode(money(p[1])));
+      nums.appendChild(s);
+    });
+    c.appendChild(nums);
+    if (item.why) c.appendChild(el("p", "why", item.why));
+    if (item.napkin) c.appendChild(el("p", "napkin", item.napkin));
+    var chips = el("div", "chips");
+    (item.flags || []).forEach(function (f) { chips.appendChild(el("span", "chip flag", f)); });
+    if (item.source) chips.appendChild(el("span", "chip src", item.source));
+    if (chips.childNodes.length) c.appendChild(chips);
+    return c;
+  }
+
+  function list(items, cls, render) {
+    var ul = el("ul", "plain" + (cls ? " " + cls : ""));
+    items.forEach(function (it) { ul.appendChild(render(it)); });
+    return ul;
+  }
+
+  function body(d) {
+    var frag = document.createDocumentFragment();
+    if (d.summary) frag.appendChild(el("p", "summary", d.summary));
+    var listings = d.listings || [];
+    var top = listings.filter(function (x) { return x.tier === "top"; });
+    var rest = listings.filter(function (x) { return x.tier !== "top"; });
+    if (top.length) {
+      frag.appendChild(el("h3", null, "Worth a look (" + top.length + ")"));
+      var g = el("div", "cards"); top.forEach(function (x) { g.appendChild(card(x, false)); }); frag.appendChild(g);
+    }
+    if (rest.length) {
+      frag.appendChild(el("h3", null, "Also loaded (" + rest.length + ")"));
+      var g2 = el("div", "cards"); rest.forEach(function (x) { g2.appendChild(card(x, true)); }); frag.appendChild(g2);
+    }
+    if (!listings.length) frag.appendChild(el("p", "meta", "No new listings passed the hard gates in this run."));
+    var skipped = d.skipped || [];
+    if (skipped.length) {
+      frag.appendChild(el("h3", null, "Skipped by hard gates (" + skipped.length + ")"));
+      frag.appendChild(list(skipped, "", function (s) {
+        var li = el("li");
+        var url = safeUrl(s.link);
+        var head = el(url ? "a" : "span", null, (s.name || "Listing") + (s.location ? " · " + s.location : "") + (s.asking ? " · " + money(s.asking) : ""));
+        if (url) { head.href = url; head.target = "_blank"; head.rel = "noopener"; }
+        li.appendChild(head);
+        li.appendChild(el("span", "reason", s.reason || ""));
+        return li;
+      }));
+    }
+    var dupes = d.duplicates || [];
+    if (dupes.length) {
+      frag.appendChild(el("h3", null, "Already in the scorecard (" + dupes.length + ")"));
+      frag.appendChild(list(dupes, "", function (s) {
+        var li = el("li");
+        li.appendChild(el("span", null, s.name || s.dealId || "Listing"));
+        if (s.note) li.appendChild(el("span", "reason", s.note));
+        return li;
+      }));
+    }
+    var errs = d.errors || [];
+    if (errs.length) {
+      frag.appendChild(el("h3", null, "Problems this run"));
+      frag.appendChild(list(errs, "errors", function (e) { return el("li", null, String(e)); }));
+    }
+    return frag;
+  }
+
+  function metaLine(d) {
+    var parts = [];
+    if (d.emailsScanned != null) parts.push(d.emailsScanned + " alert email" + (d.emailsScanned === 1 ? "" : "s"));
+    var n = (d.listings || []).length;
+    parts.push(n + " loaded");
+    if ((d.skipped || []).length) parts.push(d.skipped.length + " skipped");
+    if ((d.duplicates || []).length) parts.push(d.duplicates.length + " already in");
+    return parts.join(" · ");
+  }
+
+  function render(docs) {
+    root.textContent = "";
+    if (!docs.length) {
+      root.appendChild(el("div", "state", "No digests yet. The first one appears after the next 6 PM run."));
+      return;
+    }
+    docs.sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); });
+    var latest = docs[0];
+    var sec = el("section");
+    var head = el("div", "digest-head");
+    head.appendChild(el("h2", null, fmtDate(latest.date)));
+    head.appendChild(el("span", "meta", metaLine(latest)));
+    sec.appendChild(head);
+    sec.appendChild(body(latest));
+    root.appendChild(sec);
+    docs.slice(1).forEach(function (d) {
+      var det = el("details", "old");
+      var sum = el("summary");
+      sum.appendChild(el("span", "d", fmtDate(d.date)));
+      sum.appendChild(el("span", "meta", metaLine(d)));
+      det.appendChild(sum);
+      var b = el("div", "body"); b.appendChild(body(d)); det.appendChild(b);
+      root.appendChild(det);
+    });
+  }
+
+  (async function () {
+    var db = window.claude && window.claude.use ? await window.claude.use("db") : null;
+    if (!db) {
+      statusEl.textContent = "The digest database isn't available in this view. Open the page on claude.ai while signed in.";
+      return;
+    }
+    try {
+      // Link to the Scorecard, written by /acq:setup into config/links.
+      db.doc("config/links").onSnapshot(function (s) {
+        var u = s.exists ? ((s.data() || {}).scorecard || "") : "";
+        var a = document.getElementById("asc-link");
+        if (/^https:\/\//.test(u)) { a.href = u; a.hidden = false; } else { a.hidden = true; }
+      }, function () {});
+      db.collection("digests").orderBy("date", "desc").limit(60).onSnapshot(function (snap) {
+        var docs = snap.docs.map(function (doc) { return doc.data(); }).filter(Boolean);
+        render(docs);
+      }, function () {
+        statusEl.textContent = "Couldn't load digests. Try reloading the page.";
+      });
+    } catch (e) {
+      statusEl.textContent = "Couldn't load digests. Try reloading the page.";
+    }
+  })();
+})();
+</script>

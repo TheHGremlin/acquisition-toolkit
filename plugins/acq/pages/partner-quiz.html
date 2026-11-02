@@ -1,0 +1,331 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deal Priorities Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centered column. Intro, then a pair of cards with a 5-step answer bar, then results with a side-by-side comparison. */
+:root{
+  --bg:#F5F3F7; --panel:#FFFFFF; --ink:#25212C; --muted:#6C6577; --line:#E2DDE8; --line-strong:#CFC8D8;
+  --accent:#9446B3; --accent-ink:#6E2E88; --accent-soft:#F2E7F7;
+  --partner:#2F7A8C; --partner-soft:#E2F1F4;
+  --ok:#2C7A57; --ok-soft:#E3F2EA; --warn:#A86A12; --warn-soft:#FBF0DD; --bad:#B03445; --bad-soft:#FBE6E9;
+  --f-display:"Unbounded","Figtree",system-ui,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#17151B; --panel:#211E27; --ink:#EEEAF3; --muted:#A39BAF; --line:#34303C; --line-strong:#4A4454;
+  --accent:#C68BDF; --accent-ink:#DDB3EE; --accent-soft:#36283F; --partner:#6CC3D6; --partner-soft:#1D3238;
+  --ok:#5DBE8E; --ok-soft:#1F3329; --warn:#E3AA52; --warn-soft:#3A2D18; --bad:#E86B7C; --bad-soft:#3D2027; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#17151B; --panel:#211E27; --ink:#EEEAF3; --muted:#A39BAF; --line:#34303C; --line-strong:#4A4454;
+  --accent:#C68BDF; --accent-ink:#DDB3EE; --accent-soft:#36283F; --partner:#6CC3D6; --partner-soft:#1D3238;
+  --ok:#5DBE8E; --ok-soft:#1F3329; --warn:#E3AA52; --warn-soft:#3A2D18; --bad:#E86B7C; --bad-soft:#3D2027; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:780px;margin:0 auto;padding-inline:18px;padding-block:24px 64px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(22px,4vw,30px)} h2{font-size:17px} h3{font-size:14px}
+p{margin:0}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)} .small{font-size:14px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line-strong);background:var(--panel);border-radius:9px;padding:9px 14px;font-weight:500}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] button.primary{color:#1b1220}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.primary{color:#1b1220}}
+button.ghost{background:transparent;border-color:transparent;padding:6px 8px;color:var(--muted)}
+input[type=text]{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.progress{height:5px;background:var(--line);border-radius:4px;overflow:hidden}
+.progress div{height:5px;background:var(--accent);width:0}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:560px){.pair{grid-template-columns:1fr}}
+.opt{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-height:130px}
+.opt .nm{font-weight:600;font-size:17px;margin-bottom:6px}
+.opt .sw{color:var(--muted);font-size:15px}
+.opt .tagline{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px}
+.opt.left .tagline{color:var(--accent-ink)} .opt.right .tagline{color:var(--partner)}
+.choices{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.choices button{padding:10px 4px;font-size:14px}
+.deal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.deal button{font-size:13px;padding:8px 4px;color:var(--bad);border-color:var(--bad)}
+@media (max-width:560px){.choices{grid-template-columns:repeat(3,minmax(0,1fr))}.deal{grid-template-columns:1fr}}
+.quip{font-size:15px;color:var(--muted);min-height:24px;font-style:italic}
+.wtable{width:100%;border-collapse:collapse;font-size:14px}
+.wtable th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
+.wtable td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.wtable td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tw{overflow-x:auto}
+.dual{display:flex;flex-direction:column;gap:3px;min-width:120px}
+.dual span{display:block;height:7px;border-radius:3px}
+.dual .h{background:var(--accent)} .dual .m{background:var(--partner)}
+.key{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.key i{display:inline-block;width:12px;height:7px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.talk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.talk li{background:var(--bg);border-radius:10px;padding:12px 14px;border-left:3px solid var(--partner)}
+.talk li b{display:block;margin-bottom:2px}
+.callouts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.callouts li{background:var(--bg);border-radius:10px;padding:10px 12px;font-size:15px}
+.err{color:var(--bad);font-size:14px}
+.saved{font-size:14px;color:var(--ok)}
+.list button{width:100%;text-align:left;display:flex;justify-content:space-between;gap:10px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="stack" style="gap:6px;margin-bottom:20px">
+    <div class="eyebrow" id="eyebrow">Business search · partner edition</div>
+    <h1>This or That: Deal Priorities</h1>
+  </header>
+  <main id="app" class="stack"></main>
+</div>
+
+<!-- Copy of plugins/acq/templates/criteria-library.json. Edit that file, then run tools/dev/sync_templates.py. -->
+<script type="application/json" id="lib-criteria">{"about":"Criteria you can add to your Scorecard. 'calc' criteria are scored by the Scorecard from inputs; 'judgment' criteria you score 1-5 against anchors you can rewrite. Anchor 1 = the worst you'd still accept (anything worse belongs in a gate), 5 = the best you could realistically find, 3 = solidly OK. 'starter: true' marks the ten-criterion starter set.","criteria":[{"id":"predictability","name":"Revenue predictability","kind":"judgment","starter":true,"group":"Stability","hint":"How steady the revenue stream is, not whether each customer returns. A steady flow of one-off buyers counts.","anchors":{"1":"Lumpy: a few big-ticket, discretionary sales or projects make or break the month.","2":"A meaningful share of revenue comes from big-ticket items or projects.","3":"A steady flow of everyday, low-ticket, high-volume purchases.","4":"A strong base of repeat customers, plus some contracts or memberships.","5":"Mostly contracts, memberships, subscriptions or a documented base of regulars."},"brokerQ":"What share of revenue is recurring (contracts, memberships, regulars)? Can I see monthly revenue for the last 24 months?","clues":"\"recurring\", \"membership\", \"contracts\", \"repeat customers\", average ticket size, transaction counts"},{"id":"seasonality","name":"Tourism & seasonality","kind":"judgment","starter":true,"group":"Stability","hint":"Would a bad tourist season or a slow quarter hurt? Think about your region's own seasons and weather.","anchors":{"1":"Mostly visitor-driven, or about 40%+ of revenue lands in one season.","2":"Mostly local, but a big seasonal swing (one season ~30-40% of revenue) or ~30-40% visitors.","3":"Mostly local with a noticeable seasonal swing, or roughly 20-30% visitors.","4":"Local, with a mild seasonal bump (e.g. holidays) and few visitors.","5":"Local, needs-based customers. Flat all year."},"brokerQ":"Monthly revenue for the last 2-3 years? Roughly what share of customers are visitors rather than locals?"},{"id":"track","name":"Track record","kind":"calc","calc":"trackRecord","starter":true,"group":"Stability","hint":"Calculated from years open and the revenue trend. Declining revenue is handled by a gate, not here.","anchors":{"1":"Young (under the first year band), revenue flat.","3":"Middle of the year bands, revenue flat.","5":"Long history (top year band), steady or growing."},"brokerQ":"What year was the business founded? Revenue and SDE for each of the last 3 years?"},{"id":"team","name":"Team in place","kind":"judgment","starter":true,"group":"Transferability","hint":"Who does the work when you're not there?","anchors":{"1":"Owner plus about one part-timer. The owner is the labor.","2":"A few staff, but the owner works most shifts and runs everything.","3":"Staff do most of the work; the owner is the glue. No formal manager.","4":"A lead or assistant manager handles daily operations; the owner fills gaps and does admin.","5":"A manager runs day-to-day with trained staff. The owner only oversees."},"brokerQ":"Who runs day-to-day? Staff count, roles and tenure. Is there a manager?"},{"id":"ownerDep","name":"Owner dependence","kind":"judgment","starter":true,"group":"Transferability","hint":"Would the regulars miss the old owner more than the business? (If the owner IS the product, that's a gate.)","anchors":{"1":"Many customers come for the owner, who holds most key customer and supplier relationships.","2":"Several key customers or suppliers deal only with the owner.","3":"The owner is a face of the business, but key relationships are shared.","4":"The owner is known, but staff handle most relationships; few customers would follow the owner out.","5":"Customers buy the brand. Staff hold the relationships."},"brokerQ":"Which customer and supplier relationships are personal to the owner? How many hours does the owner work, doing what?"},{"id":"transition","name":"Transition support","kind":"judgment","starter":true,"group":"Transferability","hint":"Often a tiebreaker. A low weight means tiebreaker, not irrelevant.","anchors":{"1":"Seller gone at close, nothing documented.","2":"A week or so of handover, little written down, staff new or few.","3":"2-4 weeks of training, plus some documentation or long-tenured staff.","4":"Seller offers 1-6 months of help, and key processes are written down.","5":"Seller stays 6-12 months to train or consult, and processes are written down."},"brokerQ":"Will the seller stay on to train or consult, and for how long? What's documented?"},{"id":"dealMath","name":"Deal math","kind":"calc","calc":"dealMath","starter":true,"group":"Financials","hint":"Calculated: the lower of your take-home band and your loan-coverage (DSCR) band at the asking price.","anchors":{"1":"Pays you your minimum salary or less; loan payments barely fit, or don't.","3":"Comfortable take-home and a reasonable safety margin on the loan.","5":"Pays well above what you need, with loan payments that fit with room to spare."},"brokerQ":"SDE (or EBITDA plus total owner pay) for the last 3 years, with add-backs itemized?"},{"id":"upside","name":"Operator upside","kind":"judgment","starter":true,"group":"Upside","hint":"Usually '?' from a listing. Count only gaps you can see evidence of; broker-promised 'growth potential' earns nothing.","anchors":{"1":"Already well run and modern. Little for you to add (not bad if you want passive income).","2":"Mostly well run; a gap or two to tidy up, but no real lever.","3":"Room to modernize some things; decently run.","4":"Clear gaps in one or two areas you know well (e.g. no online sales, manual scheduling).","5":"Specific, visible gaps right in your wheelhouse that plausibly raise earnings when fixed."},"brokerQ":"What would the owner change with more time or money? What systems run the business today (POS, booking, books)?"},{"id":"commute","name":"Commute burden","kind":"calc","calc":"commute","starter":true,"group":"Location","hint":"Calculated from one-way drive time and how often you'd need to be there.","anchors":{"1":"At the edge of your limit for how often you'd need to be there.","3":"Partway between close to home and your limit.","5":"Close to home, or rarely needed on site."},"brokerQ":"Where exactly is the business located? How often does the owner actually need to be on site?"},{"id":"premises","name":"Premises","kind":"calc","calc":"premises","starter":true,"group":"Premises","hint":"Calculated: lease security x how much the business depends on its location.","anchors":{"1":"A storefront that depends on its spot, with under 5 years left and no right to renew.","3":"A location-dependent business with 5-10 years left including options.","5":"Owned, a long lease with options, or a business that could easily move."},"brokerQ":"Lease term remaining, renewal options, current rent, and will the landlord assign it or sign a new lease?"},{"id":"concentration","name":"Customer concentration","kind":"judgment","group":"Stability","hint":"Rarely visible in a listing; expect '?' until you see documents. Consider leaving it for the documents stage.","anchors":{"1":"One customer is about a third of revenue, or the top three are more than half.","3":"The largest customer is 10-15% of revenue; the rest are spread out.","5":"No customer is more than a few percent of revenue."},"brokerQ":"What share of revenue comes from the top 1, 3 and 10 customers? Any of them under contract?"},{"id":"licensing","name":"License & permit transfer","kind":"judgment","group":"Transferability","hint":"Who holds the licenses, permits or qualifier the business runs on, and do they transfer?","anchors":{"1":"The business runs on a license only the seller holds, with no clear path to transfer or replace it.","3":"Licenses can be re-issued to a new owner or held by an employee, with some paperwork and lead time.","5":"No special licensing, or licenses that transfer with the business as a matter of course."},"brokerQ":"Which licenses, permits or qualifiers does the business operate under, who holds each, and do they transfer?"},{"id":"reputation","name":"Reputation & online presence","kind":"judgment","group":"Upside","hint":"Five minutes on review sites and the business's own website.","anchors":{"1":"Poor or thin reviews, no usable website or listings.","3":"Decent reviews and a basic web presence.","5":"Strong, recent reviews; a brand people search for by name."},"brokerQ":"Does the business own its domain, social accounts and review profiles, and do they transfer with the sale?"},{"id":"capex","name":"Capital needs","kind":"judgment","group":"Financials","hint":"How much money the business will need for equipment, vehicles or build-out in the first few years.","anchors":{"1":"Major equipment, vehicles or build-out due soon, at a cost that eats a year of earnings or more.","3":"Normal ongoing replacement; nothing big due.","5":"Little equipment, or recent major upgrades already done."},"brokerQ":"Age and condition of major equipment and vehicles? Any big replacements or repairs expected in the next 3 years?"},{"id":"competition","name":"Competitive position","kind":"judgment","group":"Stability","hint":"Could a new competitor or a big chain take the customers? Judge from evidence, not the broker's adjectives.","anchors":{"1":"Crowded market, easy to copy, competing mostly on price.","3":"Some competition, with a reason customers choose this one (location, service, niche).","5":"A defensible niche, contracts or switching costs that keep customers."},"brokerQ":"Who are the main competitors, and why do customers choose this business over them?"},{"id":"staffTenure","name":"Staff stability","kind":"judgment","group":"Transferability","hint":"Turnover and how hard the key roles would be to replace.","anchors":{"1":"High turnover, or key staff likely to leave with the owner.","3":"Mixed tenure; a couple of long-time staff.","5":"Long-tenured staff in the key roles, with pay at or above market."},"brokerQ":"Staff list with roles, tenure and pay? Are any key employees planning to leave, or related to the owner?"}],"excludedOnPurpose":[{"name":"Growth potential / expansion path","why":"Buyers with a bigger vision tend to overpay for deal #1 because of what it could become. The first deal has to stand on its own numbers, so growth plans raise Joy (the 'plan' row), never Fit."},{"name":"Price vs. typical industry multiple","why":"Deal math already depends on the asking price, so scoring it twice double-counts. The Scorecard shows 'priced rich' / 'priced lean' flags instead."}]}</script>
+
+<script>
+(function(){
+"use strict";
+// The searcher's criteria and weights: config/quiz in this page's database (written by /acq:setup), or a file loaded in local mode.
+let C=[];            // [{k, name, worst, best, talk}]
+let SEARCHER=null;   // {label, up:{k:%}, down:{k:%}, combined:{k:%}}
+let GATES=[];        // the searcher's hard gates, in plain words
+let n=0;const LS="deal-priorities-progress";
+const QA=["Ten down. Dream big, but within budget.","Halfway through the nice part. Round B is the nightmares.","A toss-up is a valid answer, but don't make it a habit.","Almost done with the good timeline."];
+const QB=["Welcome to the bad timeline. Pick your poison.","'Dealbreaker' means walk away, not 'ugh, annoying'.","Halfway through the horrors. You're doing great.","Nearly there. Then you get to see how you compare."];
+
+let db=null,uid=null,st=null;
+const $=s=>document.querySelector(s);
+function el(tag,attrs,...kids){const e=document.createElement(tag);if(attrs)for(const k in attrs){const v=attrs[k];if(v==null||v===false)continue;
+  if(k==="class")e.className=v;else if(k==="text")e.textContent=v;else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v===true?"":v);}
+  for(const c of kids.flat()){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(String(c)));}return e;}
+function lsGet(){try{const s=localStorage.getItem(LS);return s?JSON.parse(s):null;}catch(e){return null;}}
+function lsSet(v){try{if(v)localStorage.setItem(LS,JSON.stringify(v));else localStorage.removeItem(LS);}catch(e){}}
+function mkPairs(){let p=[];for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)p.push(Math.random()<.5?[i,j]:[j,i]);
+  for(let k=p.length-1;k>0;k--){const r=Math.floor(Math.random()*(k+1));[p[k],p[r]]=[p[r],p[k]];}
+  for(let k=1;k<p.length;k++){const a=p[k-1],q=p[k];if(a.includes(q[0])||a.includes(q[1])){for(let m=k+1;m<p.length;m++){const s=p[m];if(!a.includes(s[0])&&!a.includes(s[1])){[p[k],p[m]]=[p[m],p[k]];break;}}}}return p;}
+let N=0;
+
+/* ---------- intro ---------- */
+function intro(){
+  const app=$("#app");app.textContent="";
+  const saved=lsGet();
+  const name=el("input",{type:"text",id:"who",placeholder:"Your first name",value:(saved&&saved.label)||""});
+  const err=el("div",{class:"err",role:"alert"});
+  name.addEventListener("input",()=>{err.textContent="";});
+  const start=el("button",{class:"primary",type:"button",text:"Start"});
+  start.addEventListener("click",()=>{const l=name.value.trim();if(!l){err.textContent="Add your name first, so the results know whose they are.";name.focus();return;}
+    st={label:l,P:[mkPairs(),mkPairs()],A:[[],[]],DB:[[],[]],rd:0,idx:0};lsSet(st);quiz();});
+  app.append(el("div",{class:"card stack"},
+    el("p",{text:SEARCHER.label+" is looking to buy a small business and has a scorecard for judging listings. This quiz is how "+SEARCHER.label+" decided what matters most. Now it's your turn. Your answers won't change the scorecard. They're a starting point for the two of you to talk."}),
+    GATES.length?el("p",{text:"Every business you'll imagine has already passed "+SEARCHER.label+"'s dealbreakers: "+GATES.join("; ")+"."}):null,
+    el("h2",{text:"How it works"}),
+    el("ul",{style:"margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"},
+      el("li",{text:"Round A ("+N+" pairs): two things are at their best. Which upside would you rather have?"}),
+      el("li",{text:"Round B ("+N+" pairs): two things are at their worst. Which downside would you rather live with? If one would make you walk away, hit the red dealbreaker button."}),
+      el("li",{text:"Answer from your own point of view, as the other half of the household. Go with your gut. About "+Math.max(5,Math.round(N*2*8/60))+" minutes; your progress is kept if you close the tab."}),
+      el("li",{text:"At the end you'll see your priorities next to "+SEARCHER.label+"'s, plus the places you disagree most."})),
+    el("label",{for:"who",class:"small muted",text:"Your name"}),name,err,
+    el("div",{class:"row"},start,saved&&saved.P?el("button",{type:"button",text:"Resume where you left off ("+(saved.rd*N+saved.idx)+" of "+(2*N)+")",onclick:()=>{st=saved;quiz();}}):null)));
+  app.append(el("div",{class:"row"},el("button",{type:"button",class:"ghost",text:"See saved results",onclick:listResults})));
+}
+
+/* ---------- quiz ---------- */
+function quiz(){
+  const app=$("#app");app.textContent="";
+  const bar=el("div",{class:"progress"},el("div",{id:"pbar"}));
+  const prog=el("span",{id:"prog",class:"small muted"});
+  const back=el("button",{type:"button",class:"ghost",text:"← Back"});
+  const ask=el("h2",{id:"ask"});
+  const L=el("div",{class:"opt left"},el("div",{class:"tagline",text:"Left"}),el("div",{class:"nm",id:"aN"}),el("div",{class:"sw",id:"aS"}));
+  const R=el("div",{class:"opt right"},el("div",{class:"tagline",text:"Right"}),el("div",{class:"nm",id:"bN"}),el("div",{class:"sw",id:"bS"}));
+  const ch=el("div",{class:"choices"});
+  [["-2","Left, by a lot"],["-1","Left"],["0","Toss-up"],["1","Right"],["2","Right, by a lot"]].forEach(([v,t])=>ch.append(el("button",{type:"button",text:t,onclick:()=>pick(+v)})));
+  const dl=el("div",{class:"deal",id:"deal"});
+  [["L","Left is a dealbreaker"],["B","Both are"],["R","Right is a dealbreaker"]].forEach(([d,t])=>dl.append(el("button",{type:"button",text:t,onclick:()=>deal(d)})));
+  const quip=el("p",{class:"quip",id:"quip"});
+  back.addEventListener("click",()=>{if(st.idx>0)st.idx--;else if(st.rd===1){st.rd=0;st.idx=N-1;}else return;st.A[st.rd].length=st.idx;st.DB[st.rd].length=st.idx;quip.textContent="Second thoughts are allowed.";lsSet(st);show();});
+  app.append(el("div",{class:"stack"},el("div",{class:"row",style:"justify-content:space-between"},prog,back),bar,ask,el("div",{class:"pair"},L,R),ch,dl,el("p",{class:"small muted",text:"Keys 1–5 work too."}),quip));
+  show();
+}
+function show(){
+  if(st.idx>=N){if(st.rd===0){st.rd=1;st.idx=0;$("#quip").textContent="Round B. Same topics, worst versions. Which would you rather live with?";lsSet(st);}else{finish();return;}}
+  const [a,b]=st.P[st.rd][st.idx],key=st.rd?"worst":"best";
+  $("#ask").textContent=st.rd?"Both are at their worst. Which would you rather live with?":"Both are at their best. Which would you rather have?";
+  $("#aN").textContent=C[a].name;$("#aS").textContent=C[a][key];
+  $("#bN").textContent=C[b].name;$("#bS").textContent=C[b][key];
+  $("#deal").hidden=st.rd!==1;
+  $("#prog").textContent=(st.rd?"Round B":"Round A")+" · "+(st.idx+1)+" of "+N;
+  $("#pbar").style.width=Math.round((st.rd*N+st.idx)/(2*N)*100)+"%";
+}
+function pick(v,d){st.A[st.rd][st.idx]=v;st.DB[st.rd][st.idx]=d||null;st.idx++;
+  const i=st.idx;let q="";const t=st.A[st.rd].filter((x,k)=>x===0&&!st.DB[st.rd][k]).length;
+  if(v===0&&!d&&t===10)q="Ten toss-ups this round. Pick a side once in a while.";
+  else if(i%10===0&&i<N)q=(st.rd?QB:QA)[(i/10-1)%4];
+  if(q)$("#quip").textContent=q;lsSet(st);show();}
+function deal(d){pick(d==="L"?2:d==="R"?-2:0,d);}
+document.addEventListener("keydown",e=>{if(!$(".choices")||e.target.tagName==="INPUT")return;const k=+e.key;if(k>=1&&k<=5)pick(k-3);});
+
+/* ---------- math ---------- */
+function weights(r,inv){
+  const R={"-2":5,"-1":2,"0":1,"1":.5,"2":.2};
+  const M=Array.from({length:n},()=>Array(n).fill(1)),D=Array.from({length:n},()=>Array(n).fill(0));
+  st.P[r].forEach(([a,b],k)=>{let x=R[st.A[r][k]];if(inv)x=1/x;M[a][b]=x;M[b][a]=1/x;const d=x>1?1:x<1?-1:0;D[a][b]=d;D[b][a]=-d;});
+  const g=M.map(row=>Math.pow(row.reduce((p,q)=>p*q,1),1/n)),s=g.reduce((p,q)=>p+q,0);
+  let loops=0;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)for(let k=j+1;k<n;k++){const a=D[i][j],b=D[j][k],c=D[k][i];if(a&&a===b&&b===c)loops++;}
+  return {w:g.map(x=>x/s*100),loops};
+}
+const r1=x=>Math.round(x*10)/10;
+function finish(){
+  const a=weights(0,false),b=weights(1,true);
+  const g=a.w.map((x,i)=>Math.sqrt(x*b.w[i])),s=g.reduce((p,q)=>p+q,0);
+  const res={label:st.label,at:new Date().toISOString(),up:{},down:{},combined:{},dealbreakers:{},loops:{A:a.loops,B:b.loops},
+    tossups:{A:st.A[0].filter(x=>x===0).length,B:st.A[1].filter((x,k)=>x===0&&!st.DB[1][k]).length}};
+  C.forEach((c,i)=>{res.up[c.k]=r1(a.w[i]);res.down[c.k]=r1(b.w[i]);res.combined[c.k]=r1(g[i]/s*100);res.dealbreakers[c.k]=0;});
+  st.P[1].forEach(([x,y],k)=>{const d=st.DB[1][k];if(d==="L"||d==="B")res.dealbreakers[C[x].k]++;if(d==="R"||d==="B")res.dealbreakers[C[y].k]++;});
+  const lbl={"-2":">>","-1":">","0":"=","1":"<","2":"<<"};
+  res.raw=[0,1].map(r=>st.P[r].map(([x,y],k)=>C[x].k+(st.DB[r][k]?"!"+st.DB[r][k]:lbl[st.A[r][k]])+C[y].k).join(" "));
+  lsSet(null);
+  results(res,true);
+}
+
+/* ---------- results ---------- */
+async function save(res,status){
+  if(!db||!uid){status.className="small muted";status.textContent="Not saved online (open this from the Claude link to save). Use Copy results instead.";return;}
+  try{await db.doc("results/"+uid).set(res);status.className="saved";status.textContent="Saved. "+SEARCHER.label+" can see these now.";}
+  catch(e){status.className="err";status.textContent="Couldn't save ("+SEARCHER.label+" may need to give you access). Use Copy results instead.";}
+}
+function results(res,fresh){
+  const app=$("#app");app.textContent="";window.scrollTo({top:0});
+  const status=el("div",{class:"small muted",text:fresh?"Saving…":""});
+  const ord=C.map((c,i)=>i).sort((x,y)=>res.combined[C[y].k]-res.combined[C[x].k]);
+  // his table
+  const t=el("table",{class:"wtable"},el("thead",{},el("tr",{},el("th",{text:"Topic"}),el("th",{text:"Upside",style:"text-align:right"}),el("th",{text:"Downside",style:"text-align:right"}),el("th",{text:"Overall",style:"text-align:right"}))));
+  const tb=el("tbody");
+  for(const i of ord){const k=C[i].k;tb.append(el("tr",{},el("td",{text:C[i].name+(res.dealbreakers[k]>=2?" · dealbreaker ×"+res.dealbreakers[k]:"")}),el("td",{class:"n",text:res.up[k].toFixed(1)}),el("td",{class:"n",text:res.down[k].toFixed(1)}),el("td",{class:"n",style:"font-weight:600",text:res.combined[k].toFixed(1)+"%"})));}
+  t.append(tb);
+  app.append(el("div",{class:"card stack"},el("h2",{text:res.label+"'s priorities"}),el("p",{class:"small muted",text:"Upside = how much you want the best version. Downside = how much you hate the worst version. Overall blends both and adds to 100%."}),el("div",{class:"tw"},t),status));
+  // callouts
+  const calls=[];
+  const top=ord.slice(0,3).map(i=>C[i].name.toLowerCase());
+  calls.push("Your top three: "+top.join(", ")+".");
+  const dbs=C.filter(c=>res.dealbreakers[c.k]>=2);
+  if(dbs.length)calls.push("You'd walk away over: "+dbs.map(c=>c.name.toLowerCase()+" (×"+res.dealbreakers[c.k]+")").join(", ")+". "+SEARCHER.label+" should hear that one directly.");
+  const asym=C.filter(c=>res.down[c.k]>=2*res.up[c.k]&&res.down[c.k]>=8);
+  if(asym.length)calls.push("Only matters when it's bad: "+asym.map(c=>c.name.toLowerCase()).join(", ")+". A great version doesn't excite you; a bad one ruins your week.");
+  const lp=res.loops.A+res.loops.B;
+  calls.push(lp<=4?"Very consistent answers ("+lp+" circular loops). Suspiciously decisive.":lp+" circular loops (A beat B, B beat C, C beat A). Normal when two things feel about equal.");
+  if(res.tossups.A+res.tossups.B>=20)calls.push(res.tossups.A+res.tossups.B+" toss-ups. Some of these numbers are basically shrugs, and that's useful to know too.");
+  app.append(el("div",{class:"card stack"},el("h2",{text:"What stands out"}),el("ul",{class:"callouts"},calls.map(c=>el("li",{text:c})))));
+  // comparison
+  const cmp=el("table",{class:"wtable"},el("thead",{},el("tr",{},el("th",{text:"Topic"}),el("th",{text:""}),el("th",{text:SEARCHER.label,style:"text-align:right"}),el("th",{text:res.label,style:"text-align:right"}))));
+  const cb=el("tbody");const mx=Math.max(...C.map(c=>Math.max(SEARCHER.combined[c.k],res.combined[c.k])));
+  const hOrd=C.slice().sort((x,y)=>SEARCHER.combined[y.k]-SEARCHER.combined[x.k]);
+  for(const c of hOrd){cb.append(el("tr",{},el("td",{text:c.name}),el("td",{},el("div",{class:"dual"},el("span",{class:"h",style:"width:"+(SEARCHER.combined[c.k]/mx*100)+"%"}),el("span",{class:"m",style:"width:"+(res.combined[c.k]/mx*100)+"%"}))),
+    el("td",{class:"n",text:SEARCHER.combined[c.k].toFixed(1)+"%"}),el("td",{class:"n",text:res.combined[c.k].toFixed(1)+"%"})));}
+  cmp.append(cb);
+  const diffs=C.map(c=>({c,d:res.combined[c.k]-SEARCHER.combined[c.k],dd:res.down[c.k]-SEARCHER.down[c.k],du:res.up[c.k]-SEARCHER.up[c.k]}));
+  const talk=diffs.filter(x=>Math.abs(x.d)>=3||Math.abs(x.dd)>=5||res.dealbreakers[x.c.k]>=2).sort((x,y)=>Math.abs(y.d)-Math.abs(x.d)).slice(0,5);
+  const talkList=el("ul",{class:"talk"});
+  for(const x of talk){
+    const who=x.d>0?res.label+" cares more":SEARCHER.label+" cares more";
+    let why=who+" ("+res.label+" "+res.combined[x.c.k].toFixed(1)+"% vs "+SEARCHER.label+" "+SEARCHER.combined[x.c.k].toFixed(1)+"%).";
+    if(Math.abs(x.dd)>=5)why+=" The gap is mostly about the worst case.";else if(Math.abs(x.du)>=5)why+=" The gap is mostly about the best case.";
+    if(res.dealbreakers[x.c.k]>=2)why+=" "+res.label+" flagged it as a dealbreaker.";
+    talkList.append(el("li",{},el("b",{text:x.c.name}),el("div",{class:"small muted",text:why}),el("div",{text:x.c.talk})));
+  }
+  if(!talk.length)talkList.append(el("li",{},el("b",{text:"You two mostly agree"}),el("div",{text:"No big gaps. Either you're well matched or you've been talking about this a lot already."})));
+  app.append(el("div",{class:"card stack"},el("h2",{text:"Next to "+SEARCHER.label+"'s"}),el("div",{class:"key"},el("span",{},el("i",{style:"background:var(--accent)"}),SEARCHER.label),el("span",{},el("i",{style:"background:var(--partner)"}),res.label)),el("div",{class:"tw"},cmp)));
+  app.append(el("div",{class:"card stack"},el("h2",{text:"Talk about these"}),el("p",{class:"small muted",text:"The biggest gaps between you, each with a question to start on."}),talkList));
+  // actions
+  const copy=el("button",{type:"button",text:"Copy results"});
+  copy.addEventListener("click",()=>{const txt=res.label+"'s deal priorities ("+res.at.slice(0,10)+")\n"+ord.map(i=>C[i].name+": overall "+res.combined[C[i].k]+"% (upside "+res.up[C[i].k]+", downside "+res.down[C[i].k]+(res.dealbreakers[C[i].k]?", dealbreaker x"+res.dealbreakers[C[i].k]:"")+")").join("\n")+"\nLoops A/B: "+res.loops.A+"/"+res.loops.B+". Toss-ups A/B: "+res.tossups.A+"/"+res.tossups.B+"."+(res.raw?"\nRaw A: "+res.raw[0]+"\nRaw B: "+res.raw[1]:"");
+    try{navigator.clipboard.writeText(txt).then(()=>{copy.textContent="Copied";},()=>{copy.textContent="Copy blocked. Screenshot instead?";});}catch(e){copy.textContent="Copy blocked. Screenshot instead?";}});
+  app.append(el("div",{class:"row"},copy,el("button",{type:"button",class:"ghost",text:"Start page",onclick:intro}),el("button",{type:"button",class:"ghost",text:"All saved results",onclick:listResults})));
+  if(fresh)save(res,status);
+}
+async function listResults(){
+  const app=$("#app");app.textContent="";
+  const box=el("div",{class:"card stack"},el("h2",{text:"Saved results"}));
+  app.append(box,el("div",{class:"row"},el("button",{type:"button",class:"ghost",text:"← Start page",onclick:intro})));
+  if(!db){box.append(el("p",{class:"small muted",text:"Saved results only show up when this page is opened from its Claude link."}));return;}
+  box.append(el("p",{class:"small muted",text:"Loading…"}));
+  try{const snap=await db.collection("results").get();box.lastChild.remove();
+    if(snap.empty){box.append(el("p",{class:"small muted",text:"Nobody has finished yet."}));return;}
+    const list=el("div",{class:"stack list",style:"gap:8px"});
+    for(const d of snap.docs){const r=d.data();if(!r||!r.combined)continue;
+      list.append(el("button",{type:"button",onclick:()=>results(r,false)},el("span",{text:String(r.label||"Someone")}),el("span",{class:"muted small",text:String(r.at||"").slice(0,10)})));}
+    box.append(list);
+  }catch(e){box.lastChild.textContent="Couldn't load saved results.";}
+}
+
+/* ---------- setup ---------- */
+const LIB=(()=>{try{return JSON.parse(document.getElementById("lib-criteria").textContent);}catch(e){return {};}})();
+const TALK={predictability:"How much do we need steady month-to-month income versus bigger but bumpier months?",
+  seasonality:"How do we feel about income that rises and falls with visitors and the seasons?",
+  track:"Would we pay more for a long history, or is a younger business with flat sales fine?",
+  team:"How hands-on should the owner be? Is 'the owner is the main employee' okay for us?",
+  ownerDep:"What happens to us if the regulars turn out to be loyal to the old owner?",
+  transition:"How much does it matter that the seller sticks around to teach the ropes?",
+  dealMath:"What's 'enough' take-home for our household, and how thin a safety margin can we live with?",
+  upside:"Do we want a business that needs fixing, or one that already runs smoothly?",
+  commute:"How much time on the road is okay for the household?",
+  premises:"How much risk are we okay with around the location: lease, landlord, having to move?"};
+// Accepts the quiz document /acq:setup writes ({searcherLabel, gates, criteria:[{id,name,best,worst,talk}], weights:{up,down}}),
+// or a full Scorecard config (schema 1), from which it derives the same thing.
+function useSetup(o){
+  if(!o)return false;
+  if(o.schema===1&&Array.isArray(o.criteria)&&o.money){
+    const libc={};for(const c of LIB.criteria||[])libc[c.id]=c;
+    const crit=o.criteria.map(e=>{const b=libc[e.id]||{},a=Object.assign({},b.anchors||{},e.anchors||{});return {id:e.id,name:e.name||b.name||e.id,best:a[5]||"",worst:a[1]||"",up:(e.weight||{}).up||0,down:(e.weight||{}).down||0};});
+    o={searcherLabel:o.profileName||"The searcher",gates:((o.gates||{}).manual||[]).filter(g=>g.tier==="hard").map(g=>g.label+(g.text?" ("+g.text+")":"")),
+      criteria:crit,weights:{up:Object.fromEntries(crit.map(c=>[c.id,c.up])),down:Object.fromEntries(crit.map(c=>[c.id,c.down]))}};
+  }
+  if(!Array.isArray(o.criteria)||o.criteria.length<2)return false;
+  C=o.criteria.map(c=>({k:c.id,name:c.name,best:c.best,worst:c.worst,talk:c.talk||TALK[c.id]||"How much does this matter to us, and why?"}));
+  n=C.length;N=n*(n-1)/2;
+  const w=o.weights||{},up=w.up||{},down=w.down||{};
+  let comb=w.combined;
+  // overall = normalized geometric mean of upside and downside, as the quiz computes it
+  if(!comb){const g=C.map(c=>Math.sqrt((up[c.k]||0)*(down[c.k]||0))),s0=g.reduce((a,b)=>a+b,0)||1;comb={};C.forEach((c,i)=>{comb[c.k]=Math.round(g[i]/s0*1000)/10;});}
+  SEARCHER={label:o.searcherLabel||"The searcher",up,down,combined:comb};
+  for(const c of C){for(const m of [SEARCHER.up,SEARCHER.down,SEARCHER.combined])m[c.k]=Number(m[c.k])||0;}
+  GATES=Array.isArray(o.gates)?o.gates:[];
+  $("#eyebrow").textContent=SEARCHER.label+"'s business search · partner edition";
+  // progress from a different set of criteria can't be resumed
+  const saved=lsGet();if(saved&&saved.P&&saved.P[0]&&saved.P[0].length!==N)lsSet(null);
+  return true;
+}
+function needSetup(msg){
+  const app=$("#app");app.textContent="";
+  const ta=el("textarea",{"aria-label":"Quiz file contents",style:"width:100%;min-height:120px;font-family:var(--f-mono);font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px",placeholder:"Or paste the file's contents here"});
+  const file=el("input",{type:"file",accept:".json,application/json"});
+  const err=el("div",{class:"err",role:"alert"});
+  const load=t=>{let o;try{o=JSON.parse(t);}catch(e){err.textContent="That isn't valid JSON.";return;}if(useSetup(o))intro();else err.textContent="That file doesn't have the searcher's criteria in it.";};
+  file.addEventListener("change",async()=>{const f=file.files&&file.files[0];if(f)load(await f.text());});
+  app.append(el("div",{class:"card stack"},el("h2",{text:"This quiz isn't set up yet"}),el("p",{class:"small muted",text:msg}),
+    el("p",{class:"small",text:"If the searcher sent you a quiz file or their exported config, load it here:"}),file,ta,
+    el("div",{class:"row"},el("button",{type:"button",class:"primary",text:"Load",onclick:()=>load(ta.value)})),err));
+}
+
+/* ---------- boot ---------- */
+const Cl=window.claude;
+if(Cl&&typeof Cl.use==="function"){
+  $("#app").textContent="Loading…";
+  Cl.use("user").then(async u=>{if(u&&typeof u.id==="function"){try{uid=await u.id();}catch(e){}}}).catch(()=>{});
+  Cl.use("db").then(async d=>{
+    db=d;
+    if(!d){needSetup("There's no database in this view (you may need to sign in).");return;}
+    try{const doc=await d.doc("config/quiz").get();if(doc.exists&&useSetup(doc.data())){intro();return;}}catch(e){}
+    needSetup("The searcher hasn't connected their criteria to this page yet. Ask them to run /acq:setup, or to send you a quiz file.");
+  }).catch(()=>needSetup("The database failed to load."));
+}else needSetup("You're running this page as a local file, so it needs the searcher's quiz file. Results stay in this browser; use Copy results to send them back.");
+})();
+</script>

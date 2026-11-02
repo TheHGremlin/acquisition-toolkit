@@ -1,0 +1,630 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deal Room</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: board (deals grouped by stage, "next up" first) and a two-column deal file (working log left, reference side right). Same tokens as the Acquisition Scorecard. */
+:root{
+  --bg:#F5F3F7; --panel:#FFFFFF; --ink:#25212C; --muted:#6C6577; --line:#E2DDE8; --line-strong:#CFC8D8;
+  --accent:#9446B3; --accent-ink:#6E2E88; --accent-soft:#F2E7F7;
+  --ok:#2C7A57; --ok-soft:#E3F2EA; --warn:#A86A12; --warn-soft:#FBF0DD; --bad:#B03445; --bad-soft:#FBE6E9;
+  --info:#3D5F9E; --info-soft:#E6ECF7;
+  --f-display:"Unbounded","Figtree",system-ui,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#17151B; --panel:#211E27; --ink:#EEEAF3; --muted:#A39BAF; --line:#34303C; --line-strong:#4A4454;
+  --accent:#C68BDF; --accent-ink:#DDB3EE; --accent-soft:#36283F;
+  --ok:#5DBE8E; --ok-soft:#1F3329; --warn:#E3AA52; --warn-soft:#3A2D18; --bad:#E86B7C; --bad-soft:#3D2027;
+  --info:#8FAEE6; --info-soft:#232C3E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#17151B; --panel:#211E27; --ink:#EEEAF3; --muted:#A39BAF; --line:#34303C; --line-strong:#4A4454;
+  --accent:#C68BDF; --accent-ink:#DDB3EE; --accent-soft:#36283F;
+  --ok:#5DBE8E; --ok-soft:#1F3329; --warn:#E3AA52; --warn-soft:#3A2D18; --bad:#E86B7C; --bad-soft:#3D2027;
+  --info:#8FAEE6; --info-soft:#232C3E; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 60px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(20px,3vw,26px)}
+h2{font-size:15px}
+h3{font-size:13px}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line-strong);background:var(--panel);border-radius:8px;padding:7px 12px;font-weight:500}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,.drow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] button.primary{color:#1b1220}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.primary{color:#1b1220}}
+button.ghost{border-color:transparent;background:transparent}
+button.danger{color:var(--bad)}
+button.sm{padding:3px 9px;font-size:13px}
+input[type=text],input[type=date],input[type=email],input:not([type]),select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+textarea{resize:vertical;min-height:70px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:500;min-width:0}
+label.check{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-weight:400;font-size:14px}
+label.check input{accent-color:var(--accent)}
+a{color:var(--accent-ink)}
+.topbar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+.topbar .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.banner{border-radius:var(--r);padding:10px 14px;font-size:14px;margin-bottom:14px;background:var(--warn-soft);color:var(--warn)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.info{background:var(--info-soft);color:var(--info)}
+.chip.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.chip.neutral{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.sec{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sec-head .hint{font-size:12px;color:var(--muted)}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.empty{color:var(--muted);font-size:14px}
+/* board */
+.nextup{display:flex;flex-direction:column;gap:8px}
+.nu{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);cursor:pointer}
+.nu:hover{border-color:var(--accent)}
+.nu .what{flex:1 1 240px;min-width:0}
+.stage-group{display:flex;flex-direction:column;gap:6px}
+.stage-group+.stage-group{margin-top:10px}
+.stage-title{display:flex;gap:8px;align-items:baseline}
+.drow{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,2fr) auto;gap:6px 16px;align-items:center;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.drow:hover{border-color:var(--accent)}
+.drow .nm{font-weight:600}
+.drow .meta{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:720px){.drow{grid-template-columns:1fr}.drow .meta{justify-content:flex-start}}
+/* deal file */
+.file{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start}
+@media (max-width:980px){.file{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.dhead{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.dhead .line{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.stagebar{display:flex;flex-wrap:wrap;gap:4px}
+.stagebar button{padding:5px 10px;font-size:13px;border-radius:999px}
+.stagebar button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .stagebar button.on{color:#1b1220}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .stagebar button.on{color:#1b1220}}
+.stagebar button.past{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
+.log{display:flex;flex-direction:column}
+.entry{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:4px 14px;padding:10px 0;border-top:1px solid var(--line)}
+.entry:first-child{border-top:0}
+.entry .when{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.entry .body{white-space:pre-wrap;overflow-wrap:anywhere}
+.entry .tools{display:flex;gap:2px;align-items:flex-start}
+@media (max-width:520px){.entry{grid-template-columns:minmax(0,1fr) auto}.entry .when{grid-row:1}.entry .tools{grid-row:1;grid-column:2}.entry .bodywrap{grid-column:1/-1}}
+.icon-btn{border:0;background:transparent;color:var(--muted);padding:3px 6px;border-radius:6px;font-size:16px;line-height:1;display:inline-flex;align-items:center}
+.icon-btn:hover{color:var(--ink);background:var(--bg)}
+.icon-btn.del:hover,.icon-btn.armed{color:var(--bad)}
+.icon-btn.armed{font-size:12px;font-weight:600}
+.na-actions{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.qgroup{display:flex;flex-direction:column;gap:2px}
+.qgroup+.qgroup{margin-top:10px;padding-top:12px;border-top:1px dashed var(--line-strong)}
+.qgroup h3{display:flex;gap:8px;align-items:baseline}
+.q .qbtns{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0}
+.qtext{display:flex;gap:6px;align-items:flex-start;min-width:0}
+.grip{cursor:grab;color:var(--muted);user-select:none;-webkit-user-select:none;padding:0 2px;line-height:1.5;flex-shrink:0}
+.grip:hover{color:var(--ink)}
+.q.dragging{opacity:.4}
+.q.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
+.q.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+.qgroup.drop-end{outline:2px dashed var(--accent);outline-offset:4px;border-radius:8px}
+@media (pointer:coarse){.grip{display:none}}
+.qnotes{display:flex;flex-direction:column;gap:4px;padding-left:12px;border-left:2px solid var(--warn)}
+.qnote{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.qnote-body{font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
+.qnotes .d{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-right:6px}
+.qsrc{display:block;font-size:12px;font-style:italic;color:var(--muted);white-space:normal;margin-top:1px}
+.qnote .tools{display:flex;gap:2px;flex-shrink:0}
+.q{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.q:first-child{border-top:0}
+.q .qt{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.q .qt span{overflow-wrap:anywhere}
+.q .ans{font-size:14px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;padding-left:12px;border-left:2px solid var(--ok)}
+.doc{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.doc:first-child{border-top:0}
+.doc button.st{min-width:96px;font-size:12px;padding:3px 9px;border-radius:999px}
+.st-none{color:var(--muted)}
+.st-requested{background:var(--warn-soft)!important;border-color:transparent!important;color:var(--warn)}
+.st-received{background:var(--info-soft)!important;border-color:transparent!important;color:var(--info)}
+.st-reviewed{background:var(--ok-soft)!important;border-color:transparent!important;color:var(--ok)}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;font-size:14px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;overflow-wrap:anywhere}
+.contact{padding:8px 0;border-top:1px solid var(--line);font-size:14px;display:flex;justify-content:space-between;gap:10px}
+.contact:first-child{border-top:0}
+.contact .who{min-width:0;overflow-wrap:anywhere}
+.saved{font-size:12px;color:var(--muted)}
+details.more>summary{cursor:pointer;color:var(--muted);font-size:13px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap" id="app">
+  <div class="topbar"><div><div class="eyebrow">Acquisition pipeline · Engage → Close</div><h1>Deal Room</h1></div></div>
+  <p class="muted">Loading your deals…</p>
+</div>
+
+<script>
+/* ---------- constants ---------- */
+const STAGES={contacting:"Contacting",docs:"NDA & docs requested",review:"Reviewing docs",valuation:"Valuation",loi:"LOI",diligence:"Diligence",closing:"Financing & closing"};
+const CLOSED_STAGES={passed:"Passed",lost:"Lost",bought:"Bought"};
+const ALL_STAGES=Object.assign({},STAGES,CLOSED_STAGES);
+const DOC_KEYS=[["nda","NDA signed"],["cbr","CBR / CIM"],["pl","P&Ls (3 years + YTD)"],["tax","Tax returns (3 years)"],["lease","Lease"],["staff","Employee list & pay"],["customers","Customer list / concentration"],["licenses","Licenses & permits"]];
+const DOC_STATUS=["none","requested","received","reviewed"];
+const DOC_LABEL={none:"Not yet",requested:"Requested",received:"Received",reviewed:"Reviewed"};
+const LOG_TYPES={call:"Call",email:"Email",meeting:"Meeting",doc:"Document",note:"Note"};
+const STALE_DAYS=10, DOC_WAIT_DAYS=7;
+// Link to the Scorecard, written by /acq:setup into config/links.
+let ascUrl="";
+const isLink=u=>/^https:\/\//.test(u||"");
+
+/* ---------- state ---------- */
+let db=null, canWrite=true, deals={}, logs={}, logUnsub=null, view={name:"board"}, showClosed=false, banner="", editingLog=null;
+try{showClosed=localStorage.getItem("dr.showClosed")==="1";}catch(e){}
+
+/* ---------- helpers ---------- */
+function el(tag,attrs,...kids){
+  const n=document.createElement(tag);
+  if(attrs)for(const k in attrs){const v=attrs[k];if(v==null||v===false)continue;
+    if(k==="class")n.className=v;else if(k==="text")n.textContent=v;
+    else if(k.startsWith("on"))n.addEventListener(k.slice(2),v);
+    else if(k==="value")n.value=v;else n.setAttribute(k,v===true?"":v);}
+  for(const c of kids.flat()){if(c==null||c===false)continue;n.append(c.nodeType?c:document.createTextNode(String(c)));}
+  return n;
+}
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+const daysBetween=(a,b)=>Math.round((Date.parse(b+"T00:00:00")-Date.parse(a+"T00:00:00"))/864e5);
+const fmtDate=s=>{if(!s)return"";const d=new Date(s.length>10?s:s+"T00:00:00");return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:d.getFullYear()===new Date().getFullYear()?undefined:"numeric"});};
+const money=v=>typeof v==="number"&&isFinite(v)?(Math.abs(v)>=1e6?"$"+(v/1e6).toFixed(2)+"M":"$"+Math.round(v/1e3)+"K"):"—";
+const isClosed=d=>!!CLOSED_STAGES[d.stage];
+const stageOf=d=>ALL_STAGES[d.stage]?d.stage:"contacting";
+const uid=()=>Math.random().toString(36).slice(2,10);
+const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"deal";
+
+function lastActivity(d){return d.lastActivity||(d.graduatedAt||"").slice(0,10)||null;}
+function attention(d){
+  // What needs attention, most urgent first.
+  const t=today(),out=[];
+  const na=d.nextAction||{};
+  if(na.due){const n=daysBetween(t,na.due);
+    if(n<0)out.push({lvl:"bad",text:"Overdue "+(-n)+"d",sort:n});
+    else if(n<=3)out.push({lvl:"warn",text:n===0?"Due today":"Due in "+n+"d",sort:n});}
+  const la=lastActivity(d);
+  if(la&&!isClosed(d)){const q=daysBetween(la,t);if(q>=STALE_DAYS)out.push({lvl:"warn",text:"Quiet "+q+"d",sort:50});}
+  for(const doc of d.docs||[]){if(doc.status==="requested"&&doc.date&&daysBetween(doc.date,t)>=DOC_WAIT_DAYS)out.push({lvl:"warn",text:doc.label+" waiting "+daysBetween(doc.date,t)+"d",sort:60});}
+  return out;
+}
+function defaultDocs(){return DOC_KEYS.map(([key,label])=>({key,label,status:"none",date:null,note:""}));}
+
+/* ---------- writes (local first, then the store, one at a time per doc) ---------- */
+const queues={};
+function setSaved(t){const s=document.getElementById("saved");if(s)s.textContent=t;}
+function patch(id,obj){
+  const d=deals[id];if(!d)return;Object.assign(d,obj);d.updatedAt=new Date().toISOString();
+  if(!db||!canWrite){setSaved(db?"Read-only":"Not saved (no database here)");return;}
+  const body=Object.assign({},obj,{updatedAt:d.updatedAt});
+  queues[id]=(queues[id]||Promise.resolve()).then(()=>db.collection("deals").doc(id).update(body)).then(()=>setSaved("Saved")).catch(e=>{
+    if(e&&e.code==="invalid_argument"){canWrite=false;setSaved("Read-only: you can't edit this deal");}else setSaved("Couldn't save. Reload and try again.");});
+}
+const debounced={};
+function patchLater(id,obj,ms=700){setSaved("Saving…");const key=id+Object.keys(obj).join();clearTimeout(debounced[key]);Object.assign(deals[id],obj);debounced[key]=setTimeout(()=>{const o={};for(const k in obj)o[k]=deals[id]&&deals[id][k];if(deals[id])patch(id,o);},ms);}
+
+async function addLog(id,entry){
+  entry.createdAt=new Date().toISOString();
+  const d=deals[id];
+  if(!db){(logs[id]=logs[id]||[]).push(Object.assign({id:uid()},entry));}
+  else{try{await db.collection("deals/"+id+"/log").add(entry);}catch(e){setSaved("Couldn't add the entry. Reload and try again.");return;}}
+  const la=lastActivity(d);
+  if(!la||entry.date>la)patch(id,{lastActivity:entry.date});else render();
+}
+// Turn the current next action into a log entry, then clear it for the next one.
+const guessType=t=>/\b(e-?mail|emailed|sent|reply|replied)\b/i.test(t)?"email":/\b(call|called|phone)\b/i.test(t)?"call":/\b(meet|meeting|visit|tour)\b/i.test(t)?"meeting":/\b(cbr|cim|p&l|nda|tax return|lease|document)s?\b/i.test(t)?"doc":"note";
+async function logNextAction(id){
+  const na=Object.assign({},deals[id].nextAction||{});
+  const t=(na.text||"").trim();if(!t)return;
+  clearTimeout(debounced[id+"nextAction"]);
+  await addLog(id,{date:na.due||today(),type:guessType(t),with:"",summary:t,by:"page"});
+  patch(id,{nextAction:{text:"",due:null}});render();
+  const f=document.getElementById("f-na");if(f)f.focus();
+}
+async function updateLog(id,entryId,obj){
+  if(!db){const e=(logs[id]||[]).find(x=>x.id===entryId);if(e)Object.assign(e,obj);}
+  else{try{await db.collection("deals/"+id+"/log").doc(entryId).update(obj);}catch(e){setSaved("Couldn't save the entry. Reload and try again.");return;}}
+  const la=lastActivity(deals[id]);
+  if(obj.date&&(!la||obj.date>la))patch(id,{lastActivity:obj.date});
+  renderLog();
+}
+async function deleteLog(id,entryId){
+  if(!db){logs[id]=(logs[id]||[]).filter(x=>x.id!==entryId);render();return;}
+  try{await db.collection("deals/"+id+"/log").doc(entryId).delete();}catch(e){setSaved("Couldn't delete the entry.");}
+}
+
+/* ---------- routing ---------- */
+function go(name,id){
+  if(logUnsub){try{logUnsub();}catch(e){}logUnsub=null;}
+  view=id?{name,id}:{name};
+  try{history.replaceState(null,"",id?"#"+id:location.pathname);}catch(e){}
+  if(name==="deal"&&db){
+    const did=id;
+    logUnsub=db.collection("deals/"+did+"/log").onSnapshot(snap=>{
+      logs[did]=snap.docs.map(x=>Object.assign({id:x.id},x.data()));
+      if(view.name==="deal"&&view.id===did)renderLog();
+    },()=>{});
+  }
+  render();window.scrollTo(0,0);
+}
+
+/* ---------- views ---------- */
+function render(){
+  const app=document.getElementById("app");
+  const focusId=document.activeElement&&document.activeElement.id;
+  app.replaceChildren(view.name==="deal"&&deals[view.id]?dealView(view.id):boardView());
+  if(focusId){const f=document.getElementById(focusId);if(f)f.focus();}
+}
+
+function boardView(){
+  const list=Object.entries(deals).map(([id,d])=>Object.assign({id},d));
+  const open=list.filter(d=>!isClosed(d)), closed=list.filter(isClosed);
+  const frag=el("div",{class:"col"});
+  frag.append(el("div",{class:"topbar"},
+    el("div",{},el("div",{class:"eyebrow",text:"Acquisition pipeline · Engage → Close"}),el("h1",{text:"Deal Room"})),
+    el("div",{class:"actions"},
+      isLink(ascUrl)?el("a",{href:ascUrl,target:"_blank",rel:"noopener",class:"small",text:"Open the Scorecard ↗"}):null,
+      el("button",{class:"primary",onclick:addDealForm,text:"Add a deal"}))));
+  if(banner)frag.append(el("div",{class:"banner",text:banner}));
+  const form=el("div",{id:"addform"});frag.append(form);
+
+  // Next up
+  const items=[];
+  for(const d of open){const na=d.nextAction||{};const att=attention(d);
+    if(na.text||att.length)items.push({d,na,att,sort:Math.min(...att.map(a=>a.sort),na.due?daysBetween(today(),na.due):99)});}
+  items.sort((a,b)=>a.sort-b.sort);
+  const nu=el("section",{class:"sec"},el("div",{class:"sec-head"},el("h2",{text:"Next up"}),el("span",{class:"hint",text:"Next actions, quiet deals, and documents you're still waiting on"})));
+  if(!items.length)nu.append(el("p",{class:"empty",text:open.length?"Nothing due. Give each deal a next action so it shows up here.":"No deals yet. Deals arrive here when Claude graduates them from the Scorecard, or add one yourself."}));
+  else{const box=el("div",{class:"nextup"});
+    for(const it of items)box.append(el("div",{class:"nu",tabindex:"0",role:"button",onclick:()=>go("deal",it.d.id),onkeydown:e=>{if(e.key==="Enter")go("deal",it.d.id);}},
+      el("div",{class:"what"},el("b",{text:it.d.name||"Untitled deal"}),el("span",{class:"muted",text:" · "+(it.na.text||"No next action set")})),
+      it.na.due?el("span",{class:"chip neutral mono",text:fmtDate(it.na.due)}):null,
+      ...it.att.map(a=>el("span",{class:"chip "+a.lvl,text:a.text}))));
+    nu.append(box);}
+  frag.append(nu);
+
+  // Deals by stage
+  const sec=el("section",{class:"sec"},el("div",{class:"sec-head"},el("h2",{text:"Deals by stage"}),
+    el("label",{class:"check"},el("input",{type:"checkbox",id:"showclosed",checked:showClosed||null,onchange:e=>{showClosed=e.target.checked;try{localStorage.setItem("dr.showClosed",showClosed?"1":"0");}catch(x){}render();}}),"Show closed ("+closed.length+")")));
+  const stages=Object.assign({},STAGES,showClosed?CLOSED_STAGES:{});
+  let any=false;
+  for(const k in stages){const ds=list.filter(d=>stageOf(d)===k);if(!ds.length)continue;any=true;
+    const g=el("div",{class:"stage-group"},el("div",{class:"stage-title"},el("h3",{text:stages[k]}),el("span",{class:"muted small",text:ds.length})));
+    for(const d of ds){const la=lastActivity(d);const s=d.snapshot||{};
+      g.append(el("div",{class:"drow",tabindex:"0",role:"button",onclick:()=>go("deal",d.id),onkeydown:e=>{if(e.key==="Enter")go("deal",d.id);}},
+        el("div",{},el("div",{class:"nm",text:d.name||"Untitled deal"}),el("div",{class:"muted small",text:[d.industry,d.location].filter(Boolean).join(" · ")})),
+        el("div",{class:"small"},d.nextAction&&d.nextAction.text?el("span",{},el("span",{class:"muted",text:"Next: "}),d.nextAction.text):el("span",{class:"muted",text:"No next action"})),
+        el("div",{class:"meta"},
+          typeof s.fit==="number"?el("span",{class:"chip acc mono",text:"Fit "+Math.round(s.fit)}):null,
+          la?el("span",{class:"chip neutral",text:"Last touch "+fmtDate(la)}):null,
+          ...attention(d).map(a=>el("span",{class:"chip "+a.lvl,text:a.text})))));}
+    sec.append(g);}
+  if(!any)sec.append(el("p",{class:"empty",text:"No deals in these stages."}));
+  frag.append(sec);
+  return frag;
+}
+
+function addDealForm(){
+  const box=document.getElementById("addform");if(!box)return;
+  if(box.firstChild){box.replaceChildren();return;}
+  const nm=el("input",{type:"text",id:"new-name",placeholder:"e.g. Print shop (Northwind), off-market"});
+  box.append(el("section",{class:"sec"},
+    el("div",{class:"sec-head"},el("h2",{text:"Add a deal by hand"}),el("span",{class:"hint",text:"For deals that didn't come through the Scorecard. Graduated deals arrive on their own."})),
+    el("label",{},"Deal name",nm),
+    el("div",{class:"topbar",style:"margin:0"},el("span"),el("div",{class:"actions"},
+      el("button",{class:"ghost",onclick:()=>box.replaceChildren(),text:"Cancel"}),
+      el("button",{class:"primary",onclick:()=>createDeal(nm.value.trim()),text:"Create"})))));
+  nm.focus();
+}
+async function createDeal(name){
+  if(!name)return;
+  const id=slug(name)+"-"+uid().slice(0,4);
+  const d={name,stage:"contacting",source:"manual",nextAction:{text:"",due:null},contacts:[],docs:defaultDocs(),questions:[],summary:"",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+  deals[id]=d;
+  if(db){try{await db.collection("deals").doc(id).set(d);}catch(e){banner="Couldn't create the deal. Reload and try again.";}}
+  go("deal",id);
+}
+
+function dealView(id){
+  const d=deals[id];const st=stageOf(d);
+  const root=el("div");
+  // header
+  const stageKeys=Object.keys(STAGES), idx=stageKeys.indexOf(st);
+  const bar=el("div",{class:"stagebar",role:"group","aria-label":"Stage"},
+    ...stageKeys.map((k,i)=>el("button",{class:k===st?"on":(i<idx?"past":""),"aria-pressed":k===st?"true":"false",onclick:()=>{patch(id,{stage:k});render();},text:STAGES[k]})));
+  const closeSel=el("select",{id:"f-close","aria-label":"Close this deal",onchange:e=>{const v=e.target.value;if(v){patch(id,{stage:v,closedAt:today()});render();}}},
+    el("option",{value:"",text:isClosed(d)?"Closed: "+CLOSED_STAGES[st]:"Close deal…"}),...Object.entries(CLOSED_STAGES).map(([k,v])=>el("option",{value:k,text:v})));
+  root.append(el("div",{class:"dhead"},
+    el("div",{class:"line"},el("button",{class:"ghost sm",onclick:()=>go("board"),text:"← All deals"}),el("span",{id:"saved",class:"saved"})),
+    el("div",{class:"line"},el("h1",{text:d.name||"Untitled deal"}),isClosed(d)?el("span",{class:"chip neutral",text:CLOSED_STAGES[st]}):null),
+    el("div",{class:"line small muted"},
+      [d.industry,d.location].filter(Boolean).join(" · ")||null,
+      d.link?el("a",{href:d.link,target:"_blank",rel:"noopener",text:"Listing ↗"}):null,
+      d.ascId&&isLink(ascUrl)?el("a",{href:ascUrl,target:"_blank",rel:"noopener",text:"Scorecard ↗"}):null,
+      d.graduatedAt?el("span",{text:"In Deal Room since "+fmtDate(d.graduatedAt.slice(0,10))}):null),
+    el("div",{class:"line"},bar,el("div",{style:"width:180px"},closeSel))));
+  if(banner)root.append(el("div",{class:"banner",text:banner}));
+  if(isClosed(d))root.append(el("section",{class:"sec",style:"margin-bottom:14px"},el("label",{},"Why it closed",
+    el("textarea",{id:"f-closed",value:d.closedReason||"",placeholder:"One or two lines for future you.",oninput:e=>patchLater(id,{closedReason:e.target.value})}))));
+
+  const main=el("div",{class:"col"}), side=el("div",{class:"col"});
+  root.append(el("div",{class:"file"},main,side));
+
+  // next action
+  const na=d.nextAction||{};
+  main.append(el("section",{class:"sec"},
+    el("div",{class:"sec-head"},el("h2",{text:"Next action"}),...attention(d).map(a=>el("span",{class:"chip "+a.lvl,text:a.text}))),
+    el("div",{class:"row2",style:"grid-template-columns:minmax(0,1fr) 160px"},
+      el("label",{},"What",el("input",{type:"text",id:"f-na",value:na.text||"",placeholder:"e.g. Send broker feedback on the CBR",oninput:e=>patchLater(id,{nextAction:{text:e.target.value,due:(deals[id].nextAction||{}).due||null}})})),
+      el("label",{},"Due",el("input",{type:"date",id:"f-due",value:na.due||"",onchange:e=>{patch(id,{nextAction:{text:(deals[id].nextAction||{}).text||"",due:e.target.value||null}});render();}}))),
+    el("div",{class:"na-actions"},
+      el("button",{class:"sm",id:"na-done",title:"Adds this to the activity log, dated with its due date (or today), then clears it",onclick:()=>logNextAction(id),text:"Done: move to log"}),
+      el("span",{class:"muted small",text:"Logged with the due date, or today if there isn't one."}))));
+
+  // activity log
+  const logSec=el("section",{class:"sec",id:"logsec"});main.append(logSec);
+  fillLog(logSec,id);
+
+  // questions
+  main.append(questionsSec(id));
+
+  // side: snapshot, docs, contacts, valuation, summary
+  side.append(snapshotSec(d),docsSec(id),contactsSec(id),valuationSec(d));
+  side.append(el("section",{class:"sec"},el("div",{class:"sec-head"},el("h2",{text:"Where it stands"}),el("span",{class:"hint",text:"Your running summary"})),
+    el("textarea",{id:"f-summary","aria-label":"Where it stands",value:d.summary||"",placeholder:"The short version: what you believe about this deal right now, and why.",style:"min-height:110px",oninput:e=>patchLater(id,{summary:e.target.value})})));
+  const del=el("button",{class:"danger ghost sm",text:"Delete this deal from the Deal Room"});
+  let armed=false;
+  del.addEventListener("click",async()=>{
+    if(!armed){armed=true;del.textContent="Really delete? Click again";setTimeout(()=>{armed=false;del.textContent="Delete this deal from the Deal Room";},4000);return;}
+    delete deals[id];if(db&&canWrite){try{await db.collection("deals").doc(id).delete();}catch(e){}}go("board");});
+  side.append(el("div",{},el("p",{class:"muted small",text:"Closing a deal keeps its history. Delete only removes duplicates or mistakes; the activity log stays in the database."}),del));
+  return root;
+}
+
+function renderLog(){const s=document.getElementById("logsec");if(s&&view.name==="deal")fillLog(s,view.id);}
+function fillLog(sec,id){
+  const entries=(logs[id]||[]).slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||"").localeCompare(a.createdAt||""));
+  const dt=el("input",{type:"date",id:"l-date",value:today()});
+  const ty=el("select",{id:"l-type"},...Object.entries(LOG_TYPES).map(([k,v])=>el("option",{value:k,text:v})));
+  const wh=el("input",{type:"text",id:"l-with",placeholder:"Broker, seller, lender…"});
+  const tx=el("textarea",{id:"l-text",placeholder:"What happened, what they claimed, what you agreed to."});
+  sec.replaceChildren(
+    el("div",{class:"sec-head"},el("h2",{text:"Activity log"}),el("span",{class:"hint",text:"Calls, emails, meetings, documents. Newest first."})),
+    el("details",{class:"more"},el("summary",{text:"Add an entry"}),
+      el("div",{class:"col",style:"margin-top:10px;gap:10px"},
+        el("div",{class:"row2"},el("label",{},"Date",dt),el("label",{},"Type",ty),el("label",{},"With",wh)),
+        el("label",{},"Summary",tx),
+        el("div",{},el("button",{class:"primary",text:"Add to log",onclick:()=>{const t=tx.value.trim();if(!t)return;addLog(id,{date:dt.value||today(),type:ty.value,with:wh.value.trim(),summary:t,by:"page"});}})))));
+  if(!entries.length){sec.append(el("p",{class:"empty",text:db?"No entries yet. Add one after each call or email, or ask Claude to debrief a call into it.":"No entries yet."}));return;}
+  const log=el("div",{class:"log"});
+  for(const e of entries){
+    if(editingLog===e.id){log.append(logEditForm(id,e));continue;}
+    const rm=el("button",{class:"icon-btn del","aria-label":"Delete this entry",title:"Delete",text:"×"});let armed=false;
+    rm.addEventListener("click",()=>{if(!armed){armed=true;rm.textContent="Delete?";rm.classList.add("armed");setTimeout(()=>{armed=false;rm.textContent="×";rm.classList.remove("armed");},3000);return;}deleteLog(id,e.id);});
+    const ed=el("button",{class:"icon-btn","aria-label":"Edit this entry",title:"Edit",onclick:()=>{editingLog=e.id;renderLog();}});ed.innerHTML=PENCIL;
+    log.append(el("div",{class:"entry"},
+      el("div",{class:"when"},fmtDate(e.date)),
+      el("div",{class:"bodywrap"},el("div",{class:"small"},el("span",{class:"chip neutral",text:LOG_TYPES[e.type]||"Note"}),e.with?el("span",{class:"muted",text:"  with "+e.with}):null,e.by==="claude"?el("span",{class:"muted",text:"  · logged by Claude"}):null,e.editedAt?el("span",{class:"muted",text:"  · edited"}):null),
+        el("div",{class:"body",style:"margin-top:4px",text:e.summary||""})),
+      el("div",{class:"tools"},ed,rm)));
+  }
+  sec.append(log);
+}
+const PENCIL='<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M11.3 2.3a1.4 1.4 0 0 1 2 2L5.6 12l-2.8.8.8-2.8z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+function logEditForm(id,e){
+  const dt=el("input",{type:"date",id:"le-date",value:e.date||today()});
+  const ty=el("select",{id:"le-type"},...Object.entries(LOG_TYPES).map(([k,v])=>el("option",{value:k,text:v})));ty.value=LOG_TYPES[e.type]?e.type:"note";
+  const wh=el("input",{type:"text",id:"le-with",value:e.with||""});
+  const tx=el("textarea",{id:"le-text",value:e.summary||"",style:"min-height:110px"});
+  return el("div",{class:"entry editing"},el("div",{class:"col",style:"gap:10px;grid-column:1/-1"},
+    el("div",{class:"row2"},el("label",{},"Date",dt),el("label",{},"Type",ty),el("label",{},"With",wh)),
+    el("label",{},"Summary",tx),
+    el("div",{style:"display:flex;gap:8px"},
+      el("button",{class:"primary sm",text:"Save",onclick:()=>{const t=tx.value.trim();if(!t)return;editingLog=null;
+        updateLog(id,e.id,{date:dt.value||e.date||today(),type:ty.value,with:wh.value.trim(),summary:t,editedAt:new Date().toISOString()});}}),
+      el("button",{class:"ghost sm",text:"Cancel",onclick:()=>{editingLog=null;renderLog();}}))));
+}
+
+// Questions are grouped by who you'll ask: the broker (email or call) or the seller (first meeting).
+// Partial answers are dated notes; a question moves to "Answered" only when you mark it.
+const AUDIENCES={broker:"For the broker (email or call)",seller:"For the first seller meeting"};
+const audOf=q=>q.audience==="seller"?"seller":"broker";
+// A question's dated notes, each editable (pencil) and deletable (× then "Delete?"). save(notes) writes the whole list.
+let editingNote=null;
+function qNotes(q,save){
+  const ns=q.notes||[];if(!ns.length)return null;
+  return el("div",{class:"qnotes"},...ns.map((n,i)=>{
+    const key=q.id+":"+i;
+    if(editingNote===key){
+      const ta=el("textarea",{id:"ne-"+key,value:n.text||"",style:"min-height:70px"});
+      const src=el("input",{type:"text",id:"nes-"+key,value:n.source||"",placeholder:"Source (optional)"});
+      return el("div",{class:"col",style:"gap:6px"},ta,src,el("div",{style:"display:flex;gap:8px"},
+        el("button",{class:"primary sm",text:"Save",onclick:()=>{const t=ta.value.trim();if(!t)return;editingNote=null;
+          save(ns.map((x,j)=>j===i?Object.assign({},x,{text:t,source:src.value.trim()}):x));}}),
+        el("button",{class:"ghost sm",text:"Cancel",onclick:()=>{editingNote=null;render();}})));
+    }
+    const ed=el("button",{class:"icon-btn","aria-label":"Edit this note",title:"Edit",onclick:()=>{editingNote=key;render();}});ed.innerHTML=PENCIL;
+    const rm=el("button",{class:"icon-btn del","aria-label":"Delete this note",title:"Delete",text:"×"});let armed=false;
+    rm.addEventListener("click",()=>{if(!armed){armed=true;rm.textContent="Delete?";rm.classList.add("armed");setTimeout(()=>{armed=false;rm.textContent="×";rm.classList.remove("armed");},3000);return;}
+      save(ns.filter((_,j)=>j!==i));});
+    return el("div",{class:"qnote"},
+      el("div",{class:"qnote-body"},el("span",{class:"d",text:fmtDate(n.date)}),n.text,n.source?el("span",{class:"qsrc",text:n.source}):null),
+      el("div",{class:"tools"},ed,rm));
+  }));
+}
+let dragQ=null;
+function clearDropMarks(){document.querySelectorAll(".drop-before,.drop-after,.drop-end").forEach(n=>n.classList.remove("drop-before","drop-after","drop-end"));}
+// Array order is display order: move the question next to the target (or to the end of its new group).
+function moveQuestion(id,qid,aud,targetId,before){
+  const list=(deals[id].questions||[]).slice();const from=list.findIndex(x=>x.id===qid);if(from<0)return;
+  const item=Object.assign({},list[from],{audience:aud});list.splice(from,1);
+  let at;
+  if(targetId){const ti=list.findIndex(x=>x.id===targetId);at=ti<0?list.length:(before?ti:ti+1);}
+  else{let last=-1;list.forEach((x,i)=>{if(x.status!=="answered"&&audOf(x)===aud)last=i;});at=last<0?list.length:last+1;}
+  list.splice(at,0,item);
+  patch(id,{questions:list});render();
+}
+function questionsSec(id){
+  const d=deals[id];const qs=d.questions||[];
+  const open=qs.filter(q=>q.status!=="answered"), done=qs.filter(q=>q.status==="answered");
+  const sec=el("section",{class:"sec"},el("div",{class:"sec-head"},el("h2",{text:"Open questions"}),el("span",{class:"hint",text:open.length+" open · "+done.length+" answered"})));
+  const save=list=>{patch(id,{questions:list});render();};
+  const upd=(qid,obj)=>save(qs.map(x=>x.id===qid?Object.assign({},x,obj):x));
+  for(const aud of Object.keys(AUDIENCES)){
+    const mine=open.filter(q=>audOf(q)===aud);
+    const g=el("div",{class:"qgroup"},el("h3",{},AUDIENCES[aud],el("span",{class:"muted small",text:String(mine.length)})));
+    if(!mine.length)g.append(el("p",{class:"empty",style:"margin:4px 0",text:"Nothing here yet."}));
+    for(const q of mine){
+      const panel=el("div");
+      const open1=(kind)=>{
+        if(panel.dataset.kind===kind){panel.replaceChildren();panel.dataset.kind="";return;}
+        panel.dataset.kind=kind;
+        const ta=el("textarea",{id:(kind==="note"?"n-":"a-")+q.id,placeholder:kind==="note"?"What you've learned so far. It stays open.":"The final answer"+((q.notes||[]).length?" (optional: your notes above are kept)":"")});
+        const src=el("input",{type:"text",id:(kind==="note"?"ns-":"s-")+q.id,placeholder:"Source (broker call 11/4, CIM p.12…)"});
+        const go1=()=>{const t=ta.value.trim(),s=src.value.trim();
+          if(kind==="note"){if(!t)return;upd(q.id,{notes:(q.notes||[]).concat([{date:today(),text:t,source:s}])});}
+          else{if(!t&&!(q.notes||[]).length)return;upd(q.id,{status:"answered",answer:t,source:s||q.source||"",answeredAt:today()});}};
+        panel.replaceChildren(el("div",{class:"col",style:"gap:8px;margin-top:4px"},ta,src,el("div",{},el("button",{class:"primary sm",text:kind==="note"?"Save note":"Mark answered",onclick:go1}))));ta.focus();
+      };
+      const other=aud==="broker"?"seller":"broker";
+      const row=el("div",{class:"q","data-qid":q.id,
+        ondragstart:e=>{dragQ=q.id;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",q.id);}catch(x){}row.classList.add("dragging");},
+        ondragend:()=>{row.draggable=false;row.classList.remove("dragging");dragQ=null;clearDropMarks();}});
+      // Only the grip starts a drag, so text in the note boxes stays selectable.
+      const grip=el("span",{class:"grip",title:"Drag to reorder or move to the other list","aria-hidden":"true",text:"⠿",
+        onpointerdown:()=>{row.draggable=true;},onpointerup:()=>{if(!dragQ)row.draggable=false;}});
+      g.append(row);
+      row.append(
+        el("div",{class:"qt"},el("div",{class:"qtext"},grip,el("span",{text:q.q})),el("div",{class:"qbtns"},
+          el("button",{class:"sm",text:"Add note",onclick:()=>open1("note")}),
+          el("button",{class:"sm",text:"Answered",onclick:()=>open1("answer")}),
+          el("button",{class:"icon-btn",title:"Move to "+(other==="seller"?"the seller meeting":"the broker list"),"aria-label":"Move to "+AUDIENCES[other],text:other==="seller"?"→ Seller":"→ Broker",style:"font-size:12px;font-weight:600",onclick:()=>upd(q.id,{audience:other})}))),
+        ...[q.source?el("div",{class:"muted small",text:"From: "+q.source}):null,qNotes(q,ns=>upd(q.id,{notes:ns})),panel].filter(Boolean));
+    }
+    // Drop targets: before/after a question, or the end of this group.
+    const target=e=>{const r=e.target.closest&&e.target.closest(".q[data-qid]");
+      if(r&&g.contains(r)&&r.dataset.qid!==dragQ){const b=r.getBoundingClientRect();return {row:r,id:r.dataset.qid,before:e.clientY<b.top+b.height/2};}
+      return {row:null,id:null,before:false};};
+    g.addEventListener("dragover",e=>{if(!dragQ)return;e.preventDefault();e.dataTransfer.dropEffect="move";clearDropMarks();
+      const t=target(e);if(t.row)t.row.classList.add(t.before?"drop-before":"drop-after");else g.classList.add("drop-end");});
+    g.addEventListener("dragleave",e=>{if(!g.contains(e.relatedTarget))clearDropMarks();});
+    g.addEventListener("drop",e=>{if(!dragQ)return;e.preventDefault();const t=target(e),moving=dragQ;dragQ=null;clearDropMarks();moveQuestion(id,moving,aud,t.id,t.before);});
+    const nq=el("input",{type:"text",id:"f-newq-"+aud,placeholder:aud==="broker"?"Add a question for the broker":"Add a question for the seller",onkeydown:e=>{if(e.key==="Enter")add();}});
+    function add(){const t=nq.value.trim();if(!t)return;save(qs.concat([{id:uid(),q:t,status:"open",audience:aud,addedAt:today(),source:"",notes:[]}]));}
+    g.append(el("div",{style:"display:flex;gap:8px;margin-top:6px"},nq,el("button",{onclick:add,text:"Add"})));
+    sec.append(g);
+  }
+  if(done.length){const det=el("details",{class:"more"},el("summary",{text:"Answered ("+done.length+")"}));
+    for(const q of done)det.append(el("div",{class:"q"},el("div",{class:"qt"},el("span",{},el("span",{class:"chip neutral",style:"margin-right:6px",text:audOf(q)==="seller"?"Seller":"Broker"}),q.q),
+      el("button",{class:"ghost sm",text:"Reopen",onclick:()=>upd(q.id,{status:"open"})})),
+      qNotes(q,ns=>upd(q.id,{notes:ns})),
+      q.answer||q.source?el("div",{class:"ans",text:(q.answer||"")+(q.source?(q.answer?"\n— ":"— ")+q.source:"")}):null));
+    sec.append(det);}
+  return sec;
+}
+
+function snapshotSec(d){
+  const s=d.snapshot;
+  const sec=el("section",{class:"sec"},el("div",{class:"sec-head"},el("h2",{text:"First-look snapshot"}),s&&s.takenAt?el("span",{class:"hint",text:"From the Scorecard, "+fmtDate(s.takenAt.slice(0,10))}):null));
+  if(!s){sec.append(el("p",{class:"empty",text:"No Scorecard snapshot. Graduated deals carry one; deals added by hand don't."}));return sec;}
+  const rows=[["Fit",typeof s.fit==="number"?Math.round(s.fit)+" / 100":"—"],["Joy",typeof s.joy==="number"?s.joy.toFixed(1)+" / 5":"—"],["Quadrant",s.quadrant||"—"],
+    ["Asking",money(s.price)],["SDE (listed)",money(s.sde)],["Revenue",money(s.revenue)],["Total project",money(s.total)],
+    ["DSCR at asking",typeof s.dscr==="number"?s.dscr.toFixed(2):"—"],["Take-home at asking",money(s.takeHome)]];
+  sec.append(el("dl",{class:"kv"},...rows.flatMap(([k,v])=>[el("dt",{text:k}),el("dd",{text:v})])));
+  if(s.flags&&s.flags.length)sec.append(el("div",{style:"display:flex;flex-wrap:wrap;gap:6px"},...s.flags.map(f=>el("span",{class:"chip warn",text:f}))));
+  sec.append(el("p",{class:"muted small",style:"margin:0",text:"Frozen at graduation. The Scorecard stays the place for first-look scoring."}));
+  return sec;
+}
+
+function docsSec(id){
+  const d=deals[id];if(!d.docs||!d.docs.length)d.docs=defaultDocs();
+  const sec=el("section",{class:"sec"},el("div",{class:"sec-head"},el("h2",{text:"Documents"}),el("span",{class:"hint",text:"Click to advance"})));
+  const box=el("div");
+  d.docs.forEach((doc,i)=>{
+    const st=DOC_STATUS.includes(doc.status)?doc.status:"none";
+    box.append(el("div",{class:"doc"},
+      el("div",{style:"min-width:0"},el("div",{text:doc.label}),doc.date&&st!=="none"?el("div",{class:"muted small",text:DOC_LABEL[st]+" "+fmtDate(doc.date)}):null),
+      el("button",{class:"st st-"+st,"aria-label":doc.label+": "+DOC_LABEL[st]+". Click to advance.",text:DOC_LABEL[st],onclick:()=>{
+        const next=DOC_STATUS[(DOC_STATUS.indexOf(st)+1)%DOC_STATUS.length];
+        const docs=d.docs.map((x,j)=>j===i?Object.assign({},x,{status:next,date:next==="none"?null:today()}):x);
+        patch(id,{docs});render();}})));
+  });
+  sec.append(box);
+  const nd=el("input",{type:"text",id:"f-newdoc",placeholder:"Add a document",onkeydown:e=>{if(e.key==="Enter")add();}});
+  function add(){const t=nd.value.trim();if(!t)return;patch(id,{docs:d.docs.concat([{key:"x-"+uid(),label:t,status:"none",date:null,note:""}])});render();}
+  sec.append(el("div",{style:"display:flex;gap:8px"},nd,el("button",{onclick:add,text:"Add"})));
+  sec.append(el("p",{class:"muted small",style:"margin:0",text:"Files stay in Deals/"+id+"/docs on your computer. Nothing confidential goes in this page."}));
+  return sec;
+}
+
+function contactsSec(id){
+  const d=deals[id];const cs=d.contacts||[];
+  const sec=el("section",{class:"sec"},el("div",{class:"sec-head"},el("h2",{text:"Contacts"})));
+  const box=el("div");
+  if(!cs.length)box.append(el("p",{class:"empty",text:"No contacts yet."}));
+  cs.forEach((c,i)=>box.append(el("div",{class:"contact"},
+    el("div",{class:"who"},el("b",{text:c.name||"—"}),el("span",{class:"muted",text:" · "+[c.role,c.firm].filter(Boolean).join(", ")}),
+      c.email?el("div",{class:"mono small",text:c.email}):null,c.phone?el("div",{class:"mono small",text:c.phone}):null),
+    el("button",{class:"ghost sm",text:"Remove","aria-label":"Remove "+(c.name||"contact"),onclick:()=>{patch(id,{contacts:cs.filter((_,j)=>j!==i)});render();}}))));
+  sec.append(box);
+  const f={name:el("input",{type:"text",id:"c-name",placeholder:"Name"}),role:el("select",{id:"c-role"},...["Broker","Seller","Lender","Attorney","CPA","Other"].map(r=>el("option",{value:r,text:r}))),
+    firm:el("input",{type:"text",id:"c-firm",placeholder:"Firm"}),email:el("input",{type:"email",id:"c-email",placeholder:"Email"}),phone:el("input",{type:"text",id:"c-phone",placeholder:"Phone"})};
+  sec.append(el("details",{class:"more"},el("summary",{text:"Add a contact"}),el("div",{class:"col",style:"margin-top:10px;gap:8px"},
+    el("div",{class:"row2"},f.name,f.role),f.firm,el("div",{class:"row2"},f.email,f.phone),
+    el("div",{},el("button",{class:"primary sm",text:"Add contact",onclick:()=>{if(!f.name.value.trim())return;
+      patch(id,{contacts:cs.concat([{name:f.name.value.trim(),role:f.role.value,firm:f.firm.value.trim(),email:f.email.value.trim(),phone:f.phone.value.trim()}])});render();}})))));
+  return sec;
+}
+
+function valuationSec(d){
+  const v=d.valuation;
+  const sec=el("section",{class:"sec"},el("div",{class:"sec-head"},el("h2",{text:"Valuation"}),v&&v.asOf?el("span",{class:"hint",text:"From your model, "+fmtDate(v.asOf)}):null));
+  if(!v){sec.append(el("p",{class:"empty",text:"Not started. When this deal reaches valuation, Claude sets up its Excel model and copies the summary here after you've worked it."}));return sec;}
+  const rows=[["Value range",(v.valueLow!=null||v.valueHigh!=null)?money(v.valueLow)+" – "+money(v.valueHigh):"—"],["Max price at your DSCR floor",money(v.maxPrice)],["Offer price",money(v.offerPrice)],
+    ["DSCR at offer",typeof v.dscrAtOffer==="number"?v.dscrAtOffer.toFixed(2):"—"],["Take-home at offer",money(v.takeHomeAtOffer)],["Adjusted SDE",money(v.adjSde)]];
+  sec.append(el("dl",{class:"kv"},...rows.flatMap(([k,x])=>[el("dt",{text:k}),el("dd",{text:x})])));
+  if(v.file)sec.append(el("p",{class:"muted small mono",style:"margin:0;overflow-wrap:anywhere",text:v.file}));
+  if(v.notes)sec.append(el("p",{class:"small",style:"margin:0;white-space:pre-wrap",text:v.notes}));
+  return sec;
+}
+
+/* ---------- boot ---------- */
+function boot(){
+  const fromHash=(location.hash||"").slice(1);
+  if(fromHash)view={name:"deal",id:fromHash};
+  render();
+  const use=window.claude&&window.claude.use;
+  if(!use){banner="Preview mode: there's no database here, so nothing you change is saved. Open the Deal Room on claude.ai to use it.";render();return;}
+  Promise.all([use("db"),use("user").catch(()=>null)]).then(([d,u])=>{
+    if(!d){banner="The database isn't available in this view, so nothing will be saved. Sign in on claude.ai.";render();return;}
+    db=d;banner="";
+    if(u&&typeof u.canEdit==="function"){Promise.resolve(u.canEdit()).then(v=>{if(v===false){canWrite=false;banner="View only: you can read these deals but not change them.";render();}}).catch(()=>{});}
+    db.doc("config/links").onSnapshot(s=>{const u=s.exists?((s.data()||{}).scorecard||""):"";if(u!==ascUrl){ascUrl=u;const a=document.activeElement;if(!(a&&(a.tagName==="TEXTAREA"||a.tagName==="INPUT")))render();}},()=>{});
+    let first=true;
+    db.collection("deals").onSnapshot(snap=>{
+      // Snapshot data is frozen; keep editable copies so local edits can apply before the store echoes them back.
+      const next={};for(const doc of snap.docs)next[doc.id]=JSON.parse(JSON.stringify(doc.data()));
+      deals=next;
+      if(first){first=false;if(view.name==="deal"&&deals[view.id])go("deal",view.id);else{view={name:"board"};render();}return;}
+      // Don't re-render under someone typing; the next action re-renders anyway.
+      const a=document.activeElement;if(a&&(a.tagName==="TEXTAREA"||(a.tagName==="INPUT"&&a.type!=="checkbox")))return;
+      render();
+    },()=>{banner="Lost the connection to your deals. Reload the page.";render();});
+  }).catch(()=>{banner="The database failed to load, so nothing will be saved this visit.";render();});
+}
+boot();
+</script>
