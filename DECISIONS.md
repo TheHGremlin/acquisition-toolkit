@@ -62,3 +62,4 @@ Checked against the Claude Code plugin and marketplace docs and the claude.com p
 | K01 | Deal skills keep deal files in `my-search/deals/<id>/` (documents in `docs/`), read links from `my-search/toolkit.json`, and run the Scorecard engine with the user's profile through `window.ascEngine.testProfile` on a locally served copy of the page. | LOCKED |
 | K02 | The listing digest screens with the profile's own gates (built-in ones by number, manual and digest-only ones by their `digestRule` text); soft gates become flags, never skips; unclear cases load with a flag. It never scores judgment criteria and never sends email. | LOCKED |
 | K03 | Scheduling the digest is suggested, not set up by the skill; the pipeline dashboard and its sync job stay out of v1. | LOCKED |
+| R01 | Bump `version` in `plugins/acq/.claude-plugin/plugin.json` for every release: installed users stay on the version they have until it changes. | LOCKED |
