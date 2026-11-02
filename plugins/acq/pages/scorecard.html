@@ -1745,6 +1745,7 @@ function setupFinish(){
 // testProfile() swaps in a profile for this page view only; it is never saved.
 window.ascEngine={
   calc:d=>calc(normalize(d)),
+  brokerQs:d=>{const n=normalize(d);return brokerQs(n,calc(n));},
   profile:()=>clone(rawProfile)||clone(EXAMPLE),
   resolved:()=>clone({money:P.money,rates:P.rates,bands:P.bands,criteria:P.crit.map(c=>({id:c.id,kind:c.kind,weight:c.weight}))}),
   testProfile:raw=>{rawProfile=raw;P=resolveProfile(raw);render();return true;}
